@@ -1,26 +1,152 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* --------------------------------------------------------------------------
+   Bella Cucina design tokens
+   Warm trattoria palette: deep wine red, toasted cream, olive + gold accents.
+   -------------------------------------------------------------------------- */
+@theme {
+  --color-brand-50: #fdf3f3;
+  --color-brand-100: #fbe5e5;
+  --color-brand-200: #f7cfcf;
+  --color-brand-300: #efabab;
+  --color-brand-400: #e37b7b;
+  --color-brand-500: #d15252;
+  --color-brand-600: #b93a3a;
+  --color-brand-700: #8b1e1e;
+  --color-brand-800: #741d1d;
+  --color-brand-900: #621d1d;
+  --color-brand-950: #350b0b;
+
+  --color-cream-50: #fdfbf7;
+  --color-cream-100: #fdf9f3;
+  --color-cream-200: #f8f0e4;
+  --color-cream-300: #f0e2cd;
+  --color-cream-400: #e7d9c4;
+  --color-cream-500: #d8c3a5;
+
+  --color-gold-400: #d9b74a;
+  --color-gold-500: #c9a227;
+  --color-gold-600: #a8871f;
+
+  --color-olive-500: #6b7a4a;
+  --color-olive-600: #55603a;
+
+  --color-ink-500: #57534e;
+  --color-ink-700: #2f2b28;
+  --color-ink-900: #1c1917;
+
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+
+  --radius-card: 1rem;
+  --shadow-card: 0 1px 2px rgb(28 25 23 / 0.04), 0 8px 24px -12px rgb(28 25 23 / 0.12);
+  --shadow-lift: 0 2px 4px rgb(28 25 23 / 0.06), 0 18px 40px -18px rgb(28 25 23 / 0.28);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  * {
+    border-color: var(--color-cream-400);
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-cream-100);
+    color: var(--color-ink-900);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Keyboard focus only — pointer clicks stay clean. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-700);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--color-brand-200);
+    color: var(--color-brand-950);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+/* Subtle paper texture behind hero sections. */
+@utility bg-trattoria {
+  background-image:
+    radial-gradient(
+      ellipse 80% 60% at 50% -10%,
+      rgb(139 30 30 / 0.1),
+      transparent 60%
+    ),
+    linear-gradient(
+      180deg,
+      var(--color-cream-200) 0%,
+      var(--color-cream-100) 100%
+    );
+}
+
+@keyframes bc-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-cream-300);
+  border-radius: 0.5rem;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.55),
+    transparent
+  );
+  animation: bc-shimmer 1.6s infinite;
+}
+
+@keyframes bc-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(139 30 30 / 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgb(139 30 30 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(139 30 30 / 0);
+  }
+}
+.pulse-ring {
+  animation: bc-pulse-ring 2s infinite;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
 }
