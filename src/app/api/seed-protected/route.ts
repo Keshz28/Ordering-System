@@ -1,7 +1,23 @@
 import { NextResponse } from "next/server";
 import { count } from "drizzle-orm";
-import { db } from "@/db";
+import { db, dbDiagnostics } from "@/db";
 import { menuItem } from "@/db/schema";
+
+/** Unwraps the driver error Drizzle hides behind "Failed query: …". */
+function describeError(error: unknown): string {
+  const parts: string[] = [];
+  let current: unknown = error;
+  for (let depth = 0; current && depth < 4; depth++) {
+    if (current instanceof Error) {
+      parts.push(current.message);
+      current = (current as Error & { cause?: unknown }).cause;
+    } else {
+      parts.push(String(current));
+      break;
+    }
+  }
+  return parts.join(" ← ");
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -76,19 +92,38 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
+  // Reported on both paths so a failing deployment is diagnosable in one call.
+  const connection = dbDiagnostics();
+  const envPresence = {
+    TURSO_DATABASE_URL: Boolean(process.env.TURSO_DATABASE_URL?.trim()),
+    TURSO_AUTH_TOKEN: Boolean(process.env.TURSO_AUTH_TOKEN?.trim()),
+    AUTH_SECRET: Boolean(process.env.AUTH_SECRET?.trim()),
+    ADMIN_SEED_TOKEN: Boolean(process.env.ADMIN_SEED_TOKEN?.trim()),
+    NEXTAUTH_URL: Boolean(process.env.NEXTAUTH_URL?.trim()),
+  };
+
   try {
     const [row] = await db.select({ n: count() }).from(menuItem);
     return NextResponse.json({
       status: "ready",
       menuItems: row?.n ?? 0,
       seeded: (row?.n ?? 0) > 0,
+      connection,
+      envPresence,
     });
   } catch (error) {
     return NextResponse.json(
       {
-        status: "no_schema",
-        error: error instanceof Error ? error.message : "Unknown error",
-        hint: "Run `npm run db:push` against this database before seeding.",
+        status: "query_failed",
+        error: describeError(error),
+        connection,
+        envPresence,
+        hint:
+          connection.driver === "file"
+            ? "The app fell back to a local file database, which cannot work on Vercel. Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN, then redeploy."
+            : !connection.hasAuthToken
+              ? "Connected to Turso but no auth token was supplied — set TURSO_AUTH_TOKEN and redeploy."
+              : "Reached Turso but the query failed. Confirm the schema was pushed to this exact database (npm run db:push).",
       },
       { status: 500 },
     );
