@@ -93,6 +93,16 @@ export async function GET(request: Request) {
   }
 
   // Reported on both paths so a failing deployment is diagnosable in one call.
+  // Reports shape, never content: enough to spot a mangled paste without
+  // ever echoing a secret back over the wire.
+  const token = process.env.TURSO_AUTH_TOKEN ?? "";
+  const tokenShape = {
+    length: token.length,
+    asciiClean: [...token].every((c) => c.charCodeAt(0) <= 255),
+    looksLikeJwt: token.split(".").length === 3,
+    hasMaskCharacters: token.includes("•"),
+  };
+
   const connection = dbDiagnostics();
   const envPresence = {
     TURSO_DATABASE_URL: Boolean(process.env.TURSO_DATABASE_URL?.trim()),
@@ -110,6 +120,7 @@ export async function GET(request: Request) {
       seeded: (row?.n ?? 0) > 0,
       connection,
       envPresence,
+      tokenShape,
     });
   } catch (error) {
     return NextResponse.json(
@@ -118,6 +129,7 @@ export async function GET(request: Request) {
         error: describeError(error),
         connection,
         envPresence,
+        tokenShape,
         hint:
           connection.driver === "file"
             ? "The app fell back to a local file database, which cannot work on Vercel. Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN, then redeploy."

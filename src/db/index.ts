@@ -52,6 +52,23 @@ function resolve(): { client: Client; resolution: DbResolution } {
     } catch {
       host = "unparseable";
     }
+
+    // The token goes straight into an HTTP header, which only accepts
+    // Latin-1. A value copied out of a masked input carries U+2022 bullets
+    // and fails deep inside the driver as an opaque ByteString error, so
+    // catch it here where we can say what actually went wrong.
+    if (authToken) {
+      const badIndex = [...authToken].findIndex((c) => c.charCodeAt(0) > 255);
+      if (badIndex !== -1) {
+        throw new Error(
+          `TURSO_AUTH_TOKEN contains a non-ASCII character (${JSON.stringify(
+            authToken[badIndex],
+          )}) at position ${badIndex}. This usually means the value was pasted ` +
+            `over a masked field and captured the mask characters. Re-enter the ` +
+            `token in the host's environment variables and redeploy.`,
+        );
+      }
+    }
     return {
       client: createRemoteClient({ url, authToken }),
       resolution: {
