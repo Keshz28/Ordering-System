@@ -1,6 +1,14 @@
 import Link from "next/link";
 import { and, count, eq, isNull } from "drizzle-orm";
-import { Gift, Heart, Inbox, Receipt, Sparkles, User } from "lucide-react";
+import {
+  CalendarCheck,
+  Gift,
+  Heart,
+  Inbox,
+  Receipt,
+  Sparkles,
+  User,
+} from "lucide-react";
 import { db } from "@/db";
 import { notification } from "@/db/schema";
 import { requireCustomer } from "@/lib/auth";
@@ -28,6 +36,7 @@ export default async function AccountLayout({
   const links = [
     { href: "/account", label: "Overview", icon: User },
     { href: "/account/orders", label: "Orders", icon: Receipt },
+    { href: "/account/reservations", label: "Bookings", icon: CalendarCheck },
     { href: "/account/offers", label: "My offers", icon: Gift },
     { href: "/account/rewards", label: "Rewards", icon: Sparkles },
     { href: "/account/favorites", label: "Favourites", icon: Heart },

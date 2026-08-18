@@ -1,6 +1,7 @@
 import { asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  branchMenuItem,
   category,
   menuItem,
   modifierGroup,
@@ -87,6 +88,33 @@ export async function getMenu(
       ),
     }))
     .filter((c) => (storefront ? c.items.length > 0 : true));
+}
+
+/**
+ * Per-branch availability, keyed by menu item id.
+ *
+ * The catalogue and its prices are chain-wide; only whether a dish is on
+ * tonight varies by outlet. Items with no row are treated as available, so a
+ * newly added dish appears everywhere until someone says otherwise.
+ */
+export async function branchAvailability(branchId: number) {
+  const rows = await db
+    .select()
+    .from(branchMenuItem)
+    .where(eq(branchMenuItem.branchId, branchId));
+
+  const map = new Map<number, { isAvailable: boolean; stock: number | null }>();
+  for (const r of rows) {
+    map.set(r.menuItemId, { isAvailable: r.isAvailable, stock: r.stock });
+  }
+  return {
+    map,
+    isAvailable(itemId: number) {
+      const row = map.get(itemId);
+      if (!row) return true;
+      return row.isAvailable && (row.stock === null || row.stock > 0);
+    },
+  };
 }
 
 export async function getMenuItem(id: number) {

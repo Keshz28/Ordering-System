@@ -399,6 +399,26 @@ export async function reservationsForCustomer(customerId: number) {
     .orderBy(desc(reservation.startsAt));
 }
 
+/**
+ * Splits a customer's bookings into what's still ahead of them and what isn't.
+ * Lives here rather than in the page so the "what time is it" decision stays
+ * out of render, and so both the account page and the inbox agree on it.
+ */
+export function partitionReservations<
+  T extends { reservation: Pick<Reservation, "status" | "endsAt"> },
+>(rows: T[], now = Date.now()) {
+  const upcoming: T[] = [];
+  const past: T[] = [];
+  for (const row of rows) {
+    const holdsTable = (LIVE_STATUSES as readonly string[]).includes(
+      row.reservation.status,
+    );
+    if (holdsTable && row.reservation.endsAt.getTime() >= now) upcoming.push(row);
+    else past.push(row);
+  }
+  return { upcoming, past };
+}
+
 export async function reservationsOnDate(branchId: number, dateKey: string) {
   return db
     .select({ reservation, table: restaurantTable })

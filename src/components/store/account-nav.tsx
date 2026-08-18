@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CalendarCheck,
   Gift,
   Heart,
   Inbox,
@@ -14,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, LucideIcon> = {
+  Bookings: CalendarCheck,
   Overview: User,
   Orders: Receipt,
   "My offers": Gift,

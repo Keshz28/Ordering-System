@@ -17,7 +17,9 @@ import { Button } from "@/components/ui/button";
 import { CartSheet } from "./cart-sheet";
 
 const links = [
-  { href: "/menu", label: "Menu" },
+  { href: "/menu", label: "Order" },
+  { href: "/our-menu", label: "Our menu" },
+  { href: "/reserve", label: "Book a table" },
   { href: "/offers", label: "Offers" },
   { href: "/account/orders", label: "My orders" },
 ];
