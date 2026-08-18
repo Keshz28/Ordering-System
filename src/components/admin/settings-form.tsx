@@ -253,7 +253,7 @@ export function SettingsForm({
                 From {t.minPoints.toLocaleString()} points
               </p>
               <ul className="mt-2 space-y-0.5 text-xs text-ink-700">
-                <li>{t.earnRate} points per $1</li>
+                <li>{t.earnRate} points per RM1</li>
                 <li>
                   {t.discountRate > 0
                     ? `${Math.round(t.discountRate * 100)}% automatic discount`

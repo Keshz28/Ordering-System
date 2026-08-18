@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /** Every price in the app renders through here, so formatting never drifts. */
-export function money(amount: number | null | undefined, symbol = "$") {
+export function money(amount: number | null | undefined, symbol = "RM") {
   const n = Number.isFinite(amount as number) ? (amount as number) : 0;
   const sign = n < 0 ? "-" : "";
   return `${sign}${symbol}${Math.abs(n).toFixed(2)}`;

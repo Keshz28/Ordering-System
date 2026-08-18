@@ -52,7 +52,7 @@ const TYPE_META = {
   referral: {
     icon: Users,
     label: "Referral",
-    note: "Give $10, get $10 — issues a voucher to the referred guest",
+    note: "Give RM30, get RM30 — issues a voucher to the referred guest",
   },
 } as const;
 

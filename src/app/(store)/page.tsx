@@ -235,11 +235,11 @@ export default async function StorefrontPage() {
 
           <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
             {[
-              { name: "Bronze", detail: "10 pts / $1", at: "0 pts" },
-              { name: "Silver", detail: "15 pts / $1 · 5% off", at: "500 pts" },
+              { name: "Bronze", detail: "10 pts / RM1", at: "0 pts" },
+              { name: "Silver", detail: "15 pts / RM1 · 5% off", at: "500 pts" },
               {
                 name: "Gold",
-                detail: "25 pts / $1 · 10% off · free delivery",
+                detail: "25 pts / RM1 · 10% off · free delivery",
                 at: "1,500 pts",
               },
             ].map((t) => (

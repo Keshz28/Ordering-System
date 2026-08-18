@@ -92,7 +92,7 @@ export default async function AccountOverviewPage() {
                 : "You're at the top tier"}
             </h2>
             <p className="mt-1 text-sm text-ink-500">
-              Earning {tier?.earnRate ?? 10} points per $1
+              Earning {tier?.earnRate ?? 10} points per RM1
               {tier && tier.discountRate > 0
                 ? ` · ${Math.round(tier.discountRate * 100)}% off every order`
                 : ""}

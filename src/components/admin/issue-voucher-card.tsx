@@ -13,8 +13,8 @@ type VoucherType = "percent_off" | "fixed_off" | "free_item" | "free_delivery";
 
 /** Quick presets — the owner rarely wants to think about the numbers. */
 const PRESETS: { label: string; type: VoucherType; value: number; minSpend: number }[] = [
-  { label: "$5 off", type: "fixed_off", value: 5, minSpend: 20 },
-  { label: "$10 off", type: "fixed_off", value: 10, minSpend: 35 },
+  { label: "RM15 off", type: "fixed_off", value: 15, minSpend: 60 },
+  { label: "RM30 off", type: "fixed_off", value: 30, minSpend: 120 },
   { label: "15% off", type: "percent_off", value: 15, minSpend: 0 },
   { label: "Free delivery", type: "free_delivery", value: 0, minSpend: 0 },
 ];

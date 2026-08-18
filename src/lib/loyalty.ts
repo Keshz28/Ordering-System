@@ -228,7 +228,7 @@ export async function runPointsMaintenance(customerId?: number) {
         customerId: row.customerId,
         kind: "loyalty",
         title: `${row.points} points expire in ${daysLeft} days`,
-        message: `Use them before they lapse — $5 off starts at just 200 points.`,
+        message: `Use them before they lapse — RM15 off starts at just 200 points.`,
         href: "/account/rewards",
       });
     } else if (daysLeft <= 90 && !row.warned90At) {

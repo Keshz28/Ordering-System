@@ -5,6 +5,7 @@ config({ quiet: true });
 import { eq } from "drizzle-orm";
 import { db } from "./index";
 import * as s from "./schema";
+import { BRANCHES } from "./branch-data";
 import {
   CATEGORIES,
   CUSTOMERS,
@@ -14,7 +15,6 @@ import {
   REDEMPTIONS,
   REVIEW_COMMENTS,
   STAFF,
-  TABLES,
   TIERS,
   ZONES,
   type SeedItem,
@@ -61,6 +61,7 @@ async function wipe() {
   await db.delete(s.customerVoucher);
   await db.delete(s.review);
   await db.delete(s.favorite);
+  await db.delete(s.deliveryJob);
   await db.delete(s.orderItem);
   await db.update(s.restaurantTable).set({ currentOrderId: null });
   await db.delete(s.order);
@@ -74,12 +75,15 @@ async function wipe() {
   await db.delete(s.promotion);
   await db.delete(s.loyaltyTier);
   await db.delete(s.deliveryZone);
+  await db.delete(s.reservation);
   await db.delete(s.restaurantTable);
+  await db.delete(s.branchMenuItem);
   await db.delete(s.loginToken);
   await db.delete(s.staffActivityLog);
   await db.delete(s.customer);
   await db.delete(s.user);
   await db.delete(s.settings);
+  await db.delete(s.branch);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -94,17 +98,57 @@ export async function seed() {
     id: 1,
     restaurantName: "Bella Cucina",
     tagline: "Wood-fired Italian, made to order",
-    currency: "USD",
-    currencySymbol: "$",
-    serviceChargeRate: 0.05,
-    taxRate: 0.08,
-    address: "118 Vine Street, Riverside District",
-    phone: "(555) 018-2245",
+    currency: "MYR",
+    currencySymbol: "RM",
+    // 10% service charge and 6% SST is the standard Malaysian restaurant split.
+    serviceChargeRate: 0.1,
+    taxRate: 0.06,
+    taxLabel: "SST",
+    address: "12 Jalan Telawi 3, Bangsar Baru, 59100 Kuala Lumpur",
+    phone: "+60 3-2201 8845",
     openingHours: OPENING_HOURS,
     referralEnabled: true,
-    referralValue: 10,
+    referralValue: 30,
     pointsExpiryMonths: 18,
+    reservationSlotMinutes: 30,
+    reservationDurationMinutes: 90,
+    reservationMaxPartySize: 12,
+    reservationLeadDays: 60,
   });
+
+  /* ------------------------------ branches -------------------------------- */
+  console.log("→ branches");
+  const branchIds = new Map<string, number>();
+  const branchRows: s.Branch[] = [];
+  for (const [i, b] of BRANCHES.entries()) {
+    const [row] = await db
+      .insert(s.branch)
+      .values({
+        slug: b.slug,
+        name: b.name,
+        shortName: b.shortName,
+        address: b.address,
+        city: b.city,
+        state: b.state,
+        postcode: b.postcode,
+        phone: b.phone,
+        lat: b.lat,
+        lng: b.lng,
+        image: b.image,
+        blurb: b.blurb,
+        floorPlanNote: b.floorPlanNote,
+        deliveryRadiusKm: b.deliveryRadiusKm,
+        openingHours: b.openingHours,
+        acceptsDelivery: true,
+        acceptsReservations: true,
+        active: true,
+        sortOrder: i,
+      })
+      .returning();
+    branchIds.set(b.slug, row.id);
+    branchRows.push(row);
+  }
+  const allBranchIds = branchRows.map((b) => b.id);
 
   /* ------------------------------ menu ------------------------------------ */
   console.log("→ menu");
@@ -176,16 +220,55 @@ export async function seed() {
     zoneIds.push(row.id);
   }
 
+  // Every branch gets its own dining room from branch-data.ts.
+  const tableIdsByBranch = new Map<number, number[]>();
+  for (const b of BRANCHES) {
+    const branchId = branchIds.get(b.slug)!;
+    const ids: number[] = [];
+    for (const t of b.tables) {
+      const [row] = await db
+        .insert(s.restaurantTable)
+        .values({
+          branchId,
+          number: t.number,
+          label: t.label ?? null,
+          seats: t.seats,
+          zone: t.zone,
+          shape: t.shape,
+          x: t.x,
+          y: t.y,
+          w: t.w,
+          h: t.h,
+          bookable: t.bookable ?? true,
+          status: chance(0.25)
+            ? ("occupied" as const)
+            : chance(0.15)
+              ? ("reserved" as const)
+              : ("free" as const),
+        })
+        .returning();
+      ids.push(row.id);
+    }
+    tableIdsByBranch.set(branchId, ids);
+  }
+
+  // Per-branch menu availability. A couple of dishes are deliberately out at
+  // one outlet so "sold out here, available there" is visible in the demo.
+  const soldOutAt: Record<string, string[]> = {
+    setapak: ["Linguine alle Vongole"],
+    putrajaya: ["Bistecca alla Fiorentina"],
+  };
   await chunkInsert(
-    s.restaurantTable,
-    TABLES.map((t) => ({
-      ...t,
-      status: chance(0.3)
-        ? ("occupied" as const)
-        : chance(0.15)
-          ? ("reserved" as const)
-          : ("free" as const),
-    })),
+    s.branchMenuItem,
+    BRANCHES.flatMap((b) =>
+      ITEMS.map((item) => ({
+        branchId: branchIds.get(b.slug)!,
+        menuItemId: itemIds.get(item.name)!,
+        isAvailable: !(soldOutAt[b.slug] ?? []).includes(item.name),
+        stock: item.stock ?? null,
+      })),
+    ),
+    60,
   );
 
   const tierIds: number[] = [];
@@ -218,10 +301,26 @@ export async function seed() {
   /* -------------------------------- staff --------------------------------- */
   const passwordHash = hashPassword("demo1234");
   const staffIds: number[] = [];
+  // Owner and manager are group-wide (branchId null); floor staff belong to a
+  // single outlet, which is what scopes their KDS and POS.
+  const staffBranch: Record<string, string | null> = {
+    "owner@bellacucina.demo": null,
+    "manager@bellacucina.demo": null,
+    "cashier@bellacucina.demo": "bangsar",
+    "kitchen@bellacucina.demo": "bangsar",
+    "cashier2@bellacucina.demo": "setapak",
+    "kitchen2@bellacucina.demo": "putrajaya",
+  };
   for (const person of STAFF) {
+    const slug = staffBranch[person.email] ?? null;
     const [row] = await db
       .insert(s.user)
-      .values({ ...person, passwordHash, active: true })
+      .values({
+        ...person,
+        branchId: slug ? (branchIds.get(slug) ?? null) : null,
+        passwordHash,
+        active: true,
+      })
       .returning();
     staffIds.push(row.id);
   }
@@ -237,10 +336,10 @@ export async function seed() {
     {
       code: "BELLA15",
       title: "15% off your order",
-      description: "Our house-wide welcome discount on orders over $30.",
+      description: "Our house-wide welcome discount on orders over RM100.",
       type: "percent_off" as const,
       value: 15,
-      minSpend: 30,
+      minSpend: 100,
       usageLimit: null,
       perCustomerLimit: 3,
       stackable: false,
@@ -262,7 +361,7 @@ export async function seed() {
       description: "Add garlic bread to your cart and it's on the house.",
       type: "free_item" as const,
       value: 0,
-      minSpend: 20,
+      minSpend: 60,
       usageLimit: 500,
       perCustomerLimit: 2,
       stackable: true,
@@ -270,11 +369,11 @@ export async function seed() {
     },
     {
       code: "FREEDELIV",
-      title: "Free delivery over $25",
-      description: "We cover the delivery fee on orders above $25.",
+      title: "Free delivery over RM80",
+      description: "We cover the delivery fee on orders above RM80.",
       type: "free_delivery" as const,
       value: 0,
-      minSpend: 25,
+      minSpend: 80,
       usageLimit: null,
       perCustomerLimit: 5,
       stackable: true,
@@ -282,11 +381,11 @@ export async function seed() {
     },
     {
       code: "LUNCH10",
-      title: "$10 off lunch for two",
-      description: "Weekday lunches, orders over $45.",
+      title: "RM30 off lunch for two",
+      description: "Weekday lunches, orders over RM150.",
       type: "fixed_off" as const,
-      value: 10,
-      minSpend: 45,
+      value: 30,
+      minSpend: 150,
       usageLimit: 200,
       perCustomerLimit: 1,
       stackable: false,
@@ -326,7 +425,7 @@ export async function seed() {
     {
       type: "banner" as const,
       title: "Wood-fired Wednesdays",
-      description: "Any pizza + a glass of Chianti for $24, every Wednesday.",
+      description: "Any pizza + a glass of Chianti for RM62, every Wednesday.",
       config: {
         image:
           "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1400&q=70",
@@ -360,14 +459,14 @@ export async function seed() {
     {
       type: "bundle" as const,
       title: "Lunch Combo",
-      description: "Margherita + Bruschetta + Limonata for $24.",
+      description: "Margherita + Bruschetta + Limonata for RM58.",
       config: {
         itemIds: [
           itemIds.get("Margherita D.O.P.")!,
           itemIds.get("Bruschetta Classica")!,
           itemIds.get("Limonata Siciliana")!,
         ],
-        bundlePrice: 24,
+        bundlePrice: 58,
       },
       active: true,
       sortOrder: 3,
@@ -386,17 +485,17 @@ export async function seed() {
     {
       type: "birthday" as const,
       title: "Birthday treat",
-      description: "$10 off in the week around your birthday.",
-      config: { fixedOff: 10, daysBefore: 7 },
+      description: "RM30 off in the week around your birthday.",
+      config: { fixedOff: 30, daysBefore: 7 },
       active: true,
       sortOrder: 5,
     },
     {
       type: "referral" as const,
-      title: "Give $10, get $10",
+      title: "Give RM30, get RM30",
       description:
-        "Your friend gets $10 off their first order, you get $10 when they use it.",
-      config: { fixedOff: 10 },
+        "Your friend gets RM30 off their first order, you get RM30 when they use it.",
+      config: { fixedOff: 30 },
       active: true,
       sortOrder: 6,
     },
@@ -620,6 +719,14 @@ export async function seed() {
       }
     }
 
+    // Bangsar is the flagship and takes the largest share of volume.
+    const orderBranchId = weightedPick([
+      { item: branchIds.get("bangsar")!, weight: 38 },
+      { item: branchIds.get("setapak")!, weight: 26 },
+      { item: branchIds.get("bukit-jelutong")!, weight: 21 },
+      { item: branchIds.get("putrajaya")!, weight: 15 },
+    ]);
+
     // --- delivery fee ---
     let deliveryFee = 0;
     let deliveryZoneId: number | null = null;
@@ -650,9 +757,9 @@ export async function seed() {
     }
 
     const discountedFood = round2(subtotal - discountAmount);
-    const serviceCharge = round2(discountedFood * 0.05);
+    const serviceCharge = round2(discountedFood * 0.1);
     const taxable = round2(discountedFood + serviceCharge + deliveryFee);
-    const taxAmount = round2(taxable * 0.08);
+    const taxAmount = round2(taxable * 0.06);
     const tip =
       type === "dine_in" && chance(0.55)
         ? round2(discountedFood * pick([0.1, 0.15, 0.2]))
@@ -684,6 +791,7 @@ export async function seed() {
       .insert(s.order)
       .values({
         number: `BC-${++orderSeq}`,
+        branchId: orderBranchId,
         customerId: cust.id,
         guestName: cust.name,
         guestEmail: cust.email,
@@ -692,7 +800,7 @@ export async function seed() {
         tableNumber: type === "dine_in" ? between(1, 14) : null,
         address:
           type === "delivery"
-            ? `${between(2, 240)} ${pick(["Vine", "Elm", "Harbour", "Chestnut", "Maple"])} Street, Apt ${between(1, 40)}`
+            ? `No ${between(2, 240)}, Jalan ${pick(["Telawi", "Maarof", "Bangkung", "Kemuja", "Ara"])} ${between(1, 9)}, ${pick(["Bangsar", "Setapak", "Bukit Jelutong", "Putrajaya", "Damansara"])}`
             : null,
         deliveryZoneId,
         pickupSlot:
@@ -806,15 +914,17 @@ export async function seed() {
       };
     });
 
+    const orderBranchId = allBranchIds[i % allBranchIds.length];
     const subtotal = round2(lines.reduce((sum, l) => sum + l.lineTotal, 0));
-    const serviceCharge = round2(subtotal * 0.05);
-    const deliveryFee = type === "delivery" ? 3 : 0;
-    const taxAmount = round2((subtotal + serviceCharge + deliveryFee) * 0.08);
+    const serviceCharge = round2(subtotal * 0.1);
+    const deliveryFee = type === "delivery" ? 8 : 0;
+    const taxAmount = round2((subtotal + serviceCharge + deliveryFee) * 0.06);
 
     const [row] = await db
       .insert(s.order)
       .values({
         number: `BC-${++orderSeq}`,
+        branchId: orderBranchId,
         customerId: cust.id,
         guestName: cust.name,
         guestEmail: cust.email,
@@ -822,7 +932,7 @@ export async function seed() {
         tableNumber: type === "dine_in" ? between(1, 14) : null,
         deliveryZoneId: type === "delivery" ? zoneIds[1] : null,
         address:
-          type === "delivery" ? `${between(2, 90)} Harbour Street, Apt 12` : null,
+          type === "delivery" ? `No ${between(2, 90)}, Jalan Maarof, Bangsar` : null,
         status,
         subtotal,
         serviceCharge,
@@ -1035,7 +1145,7 @@ export async function seed() {
       ]),
       detail: pick([
         "Order BC-2431",
-        "Margherita D.O.P. price updated to $14.50",
+        "Margherita D.O.P. price updated to RM32.00",
         "Table 6 → occupied",
         "Voucher BELLA15 usage limit raised",
         "Campaign “We miss you” sent to 6 dormant guests",
@@ -1043,6 +1153,124 @@ export async function seed() {
       createdAt: new Date(now.getTime() - i * between(2, 20) * 3_600_000),
     })),
   );
+
+  /* ----------------------------- reservations ----------------------------- */
+  console.log("→ reservations");
+  const OCCASIONS = [
+    "none",
+    "none",
+    "birthday",
+    "anniversary",
+    "business",
+    "date",
+    "celebration",
+  ] as const;
+  const RESERVATION_NOTES = [
+    null,
+    null,
+    "High chair for a toddler, please.",
+    "Celebrating — a candle on the dessert would be lovely.",
+    "Wheelchair access needed.",
+    "Quiet corner if you have one.",
+    "Nut allergy in the party.",
+  ];
+
+  const reservationRows: {
+    reference: string;
+    branchId: number;
+    tableId: number;
+    customerId: number;
+    name: string;
+    email: string;
+    phone: string | null;
+    partySize: number;
+    date: string;
+    startsAt: Date;
+    endsAt: Date;
+    durationMinutes: number;
+    status: s.ReservationStatus;
+    occasion: (typeof OCCASIONS)[number];
+    notes: string | null;
+    createdAt: Date;
+  }[] = [];
+
+  const dateKey = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  // Tables held per (branch, date) so the seed never double-books one.
+  const held = new Map<string, Set<number>>();
+  let reservationSeq = 4200;
+
+  const makeReservation = (dayOffset: number, status: s.ReservationStatus) => {
+    const b = pick(BRANCHES);
+    const branchId = branchIds.get(b.slug)!;
+    const partySize = weightedPick([
+      { item: 2, weight: 40 },
+      { item: 3, weight: 15 },
+      { item: 4, weight: 25 },
+      { item: 6, weight: 13 },
+      { item: 8, weight: 7 },
+    ]);
+
+    const candidates = b.tables.filter(
+      (t) => (t.bookable ?? true) && t.seats >= partySize,
+    );
+    if (candidates.length === 0) return;
+
+    const day = new Date();
+    day.setDate(day.getDate() + dayOffset);
+    day.setHours(0, 0, 0, 0);
+    const key = dateKey(day);
+
+    const hour = pick([12, 12, 13, 18, 19, 19, 20, 20, 21]);
+    const minute = pick([0, 30]);
+    const startsAt = new Date(day);
+    startsAt.setHours(hour, minute, 0, 0);
+
+    const slotKey = `${branchId}:${key}:${hour}:${minute}`;
+    const taken = held.get(slotKey) ?? new Set<number>();
+    const table = candidates.find((t) => !taken.has(t.number));
+    if (!table) return;
+    taken.add(table.number);
+    held.set(slotKey, taken);
+
+    const tableId = tableIdsByBranch.get(branchId)![
+      b.tables.findIndex((t) => t.number === table.number)
+    ];
+    if (!tableId) return;
+
+    const cust = pick(customerRows);
+    const seedCustomer = CUSTOMERS.find((c) => c.email === cust.email);
+    const endsAt = new Date(startsAt.getTime() + 90 * 60_000);
+
+    reservationRows.push({
+      reference: `BC-R-${++reservationSeq}`,
+      branchId,
+      tableId,
+      customerId: cust.id,
+      name: cust.name,
+      email: cust.email,
+      phone: seedCustomer?.phone ?? null,
+      partySize,
+      date: key,
+      startsAt,
+      endsAt,
+      durationMinutes: 90,
+      status,
+      occasion: pick([...OCCASIONS]),
+      notes: pick(RESERVATION_NOTES),
+      createdAt: new Date(startsAt.getTime() - between(1, 14) * DAY),
+    });
+  };
+
+  // Past bookings give the CRM and reports something to show...
+  for (let i = 0; i < 40; i++) {
+    makeReservation(-between(1, 45), chance(0.12) ? "no_show" : "completed");
+  }
+  // ...and upcoming ones make the floor maps look genuinely in demand.
+  for (let i = 0; i < 34; i++) makeReservation(between(0, 21), "confirmed");
+
+  await chunkInsert(s.reservation, reservationRows, 30);
 
   /* -------------------------- derived CRM + loyalty ----------------------- */
   console.log("→ recomputing segments & tiers");
@@ -1059,7 +1287,7 @@ export async function seed() {
     value: 5,
     minSpend: 20,
     expiryDays: 30,
-    title: "$5 off — thanks for being a regular",
+    title: "RM15 off — thanks for being a regular",
     source: "manual",
   });
 

@@ -73,7 +73,7 @@ export type Quote = {
   voucher: Voucher | null;
   voucherError: string | null;
   zone: DeliveryZone | null;
-  /** Non-fatal notices, e.g. "minimum order for this zone is $20". */
+  /** Non-fatal notices, e.g. "minimum order for this zone is RM40". */
   warnings: string[];
   freeItemLine: ResolvedLine | null;
 };
@@ -92,16 +92,21 @@ export const DEFAULT_SETTINGS: Settings = {
   id: 1,
   restaurantName: "Bella Cucina",
   tagline: "Modern Italian, made to order",
-  currency: "USD",
-  currencySymbol: "$",
-  serviceChargeRate: 0.05,
-  taxRate: 0.08,
-  address: "118 Vine Street, Riverside District",
-  phone: "(555) 018-2245",
+  currency: "MYR",
+  currencySymbol: "RM",
+  serviceChargeRate: 0.1,
+  taxRate: 0.06,
+  taxLabel: "SST",
+  address: "Jalan Telawi 3, Bangsar Baru, Kuala Lumpur",
+  phone: "+60 3-2201 8845",
   openingHours: {},
   referralEnabled: true,
   referralValue: 10,
   pointsExpiryMonths: 18,
+  reservationSlotMinutes: 30,
+  reservationDurationMinutes: 90,
+  reservationMaxPartySize: 12,
+  reservationLeadDays: 60,
 };
 
 export async function getSettings(): Promise<Settings> {

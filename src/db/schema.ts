@@ -19,6 +19,54 @@ const createdAt = () =>
     .default(sql`(unixepoch())`);
 
 /* -------------------------------------------------------------------------- */
+/*  Branches                                                                  */
+/* -------------------------------------------------------------------------- */
+
+export type OpeningHours = Record<
+  string,
+  { open: string; close: string; closed?: boolean }
+>;
+
+/**
+ * An outlet. Orders, tables, reservations and most staff belong to exactly one;
+ * the menu catalogue is shared chain-wide, with per-branch availability handled
+ * by `branch_menu_item`.
+ */
+export const branch = sqliteTable("branch", {
+  id: pk(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  /** Short label for chips and pickers, e.g. "Bangsar". */
+  shortName: text("short_name").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull().default("Selangor"),
+  postcode: text("postcode").notNull().default(""),
+  phone: text("phone").notNull().default(""),
+  lat: real("lat"),
+  lng: real("lng"),
+  image: text("image"),
+  /** One line of colour for the branch picker. */
+  blurb: text("blurb"),
+  openingHours: text("opening_hours", { mode: "json" })
+    .$type<OpeningHours>()
+    .default({}),
+  /** Delivery is refused beyond this radius. */
+  deliveryRadiusKm: real("delivery_radius_km").notNull().default(8),
+  acceptsDelivery: integer("accepts_delivery", { mode: "boolean" })
+    .notNull()
+    .default(true),
+  acceptsReservations: integer("accepts_reservations", { mode: "boolean" })
+    .notNull()
+    .default(true),
+  /** How the dining room is described on the reservation floor map. */
+  floorPlanNote: text("floor_plan_note"),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: createdAt(),
+});
+
+/* -------------------------------------------------------------------------- */
 /*  Staff & customers                                                         */
 /* -------------------------------------------------------------------------- */
 
@@ -32,6 +80,8 @@ export const user = sqliteTable("user", {
   })
     .notNull()
     .default("cashier"),
+  /** null = group-wide access (owners and area managers). */
+  branchId: integer("branch_id").references(() => branch.id),
   passwordHash: text("password_hash").notNull(),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   createdAt: createdAt(),
@@ -145,6 +195,32 @@ export const modifierGroup = sqliteTable("modifier_group", {
   sortOrder: integer("sort_order").notNull().default(0),
 });
 
+/**
+ * Per-branch availability. The catalogue and its prices are chain-wide, but a
+ * branch can run out of squid ink or take a dish off for the evening without
+ * affecting the others.
+ */
+export const branchMenuItem = sqliteTable(
+  "branch_menu_item",
+  {
+    id: pk(),
+    branchId: integer("branch_id")
+      .notNull()
+      .references(() => branch.id, { onDelete: "cascade" }),
+    menuItemId: integer("menu_item_id")
+      .notNull()
+      .references(() => menuItem.id, { onDelete: "cascade" }),
+    isAvailable: integer("is_available", { mode: "boolean" })
+      .notNull()
+      .default(true),
+    /** null = untracked at this branch, 0 = sold out here. */
+    stock: integer("stock"),
+  },
+  (t) => [
+    uniqueIndex("branch_menu_item_unique_idx").on(t.branchId, t.menuItemId),
+  ],
+);
+
 export const modifierOption = sqliteTable("modifier_option", {
   id: pk(),
   groupId: integer("group_id")
@@ -174,6 +250,8 @@ export const order = sqliteTable(
     id: pk(),
     /** Human-facing reference, e.g. BC-2847. */
     number: text("number").notNull().unique(),
+    /** The outlet that cooks and fulfils this order. */
+    branchId: integer("branch_id").references(() => branch.id),
     customerId: integer("customer_id").references(() => customer.id),
     guestName: text("guest_name"),
     guestEmail: text("guest_email"),
@@ -226,10 +304,24 @@ export const order = sqliteTable(
     voucherCode: text("voucher_code"),
     campaignId: integer("campaign_id"),
     paymentMethod: text("payment_method", {
-      enum: ["card", "apple_pay", "google_pay", "cash", "simulated"],
+      enum: [
+        "card",
+        "fpx",
+        "duitnow_qr",
+        "tng",
+        "grabpay",
+        "boost",
+        "shopeepay",
+        "apple_pay",
+        "google_pay",
+        "cash",
+        "simulated",
+      ],
     })
       .notNull()
       .default("simulated"),
+    /** FPX bank or e-wallet chosen, for the receipt line. */
+    paymentDetail: text("payment_detail"),
     paymentStatus: text("payment_status", {
       enum: ["pending", "authorized", "captured", "failed", "refunded"],
     })
@@ -290,6 +382,69 @@ export const deliveryZone = sqliteTable("delivery_zone", {
   etaMinutes: integer("eta_minutes").notNull().default(35),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
 });
+
+/**
+ * A courier booking for one delivery order.
+ *
+ * The columns mirror what on-demand courier APIs actually return (a provider
+ * reference, a quoted fee, a named driver with a plate, a coarse status and a
+ * progress fraction), so the built-in simulated provider and a real Lalamove,
+ * Grab Express or Delyva account can populate the same row. See
+ * src/lib/delivery.ts for the provider interface.
+ */
+export const deliveryJob = sqliteTable(
+  "delivery_job",
+  {
+    id: pk(),
+    orderId: integer("order_id")
+      .notNull()
+      .references(() => order.id, { onDelete: "cascade" }),
+    branchId: integer("branch_id").references(() => branch.id),
+    provider: text("provider", {
+      enum: ["simulated", "lalamove", "grab_express", "delyva", "pandago", "borzo"],
+    })
+      .notNull()
+      .default("simulated"),
+    /** The provider's own booking id. */
+    providerRef: text("provider_ref"),
+    status: text("status", {
+      enum: [
+        "quoted",
+        "requested",
+        "assigned",
+        "picking_up",
+        "on_the_way",
+        "delivered",
+        "cancelled",
+        "failed",
+      ],
+    })
+      .notNull()
+      .default("quoted"),
+    fee: real("fee").notNull().default(0),
+    distanceKm: real("distance_km").notNull().default(0),
+    etaMinutes: integer("eta_minutes").notNull().default(30),
+    driverName: text("driver_name"),
+    driverPhone: text("driver_phone"),
+    vehicleType: text("vehicle_type", {
+      enum: ["motorcycle", "car", "van"],
+    })
+      .notNull()
+      .default("motorcycle"),
+    plateNumber: text("plate_number"),
+    driverRating: real("driver_rating"),
+    /** 0–1 along the branch→customer route; drives the tracking map. */
+    progress: real("progress").notNull().default(0),
+    pickupAddress: text("pickup_address"),
+    dropoffAddress: text("dropoff_address"),
+    assignedAt: integer("assigned_at", { mode: "timestamp" }),
+    pickedUpAt: integer("picked_up_at", { mode: "timestamp" }),
+    deliveredAt: integer("delivered_at", { mode: "timestamp" }),
+    proofNote: text("proof_note"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("delivery_job_order_idx").on(t.orderId)],
+);
 
 /* -------------------------------------------------------------------------- */
 /*  Promotions, vouchers, loyalty                                             */
@@ -425,7 +580,7 @@ export const loyaltyTier = sqliteTable("loyalty_tier", {
   id: pk(),
   name: text("name").notNull(),
   minPoints: integer("min_points").notNull().default(0),
-  /** Points earned per $1 of qualifying spend. */
+  /** Points earned per RM1 of qualifying spend. */
   earnRate: integer("earn_rate").notNull().default(10),
   /** Automatic checkout discount, e.g. 0.05 = 5%. */
   discountRate: real("discount_rate").notNull().default(0),
@@ -595,18 +750,121 @@ export const favorite = sqliteTable(
 /*  Operations                                                                */
 /* -------------------------------------------------------------------------- */
 
-export const restaurantTable = sqliteTable("restaurant_table", {
-  id: pk(),
-  number: integer("number").notNull().unique(),
-  seats: integer("seats").notNull().default(2),
-  zone: text("zone").notNull().default("Main Floor"),
-  status: text("status", {
-    enum: ["free", "occupied", "reserved", "cleaning"],
-  })
-    .notNull()
-    .default("free"),
-  currentOrderId: integer("current_order_id"),
-});
+/**
+ * A physical table. Carries its own position on the branch floor plan so the
+ * reservation picker and the staff floor view render from the same source —
+ * coordinates are on a 0–100 grid, so the map scales to any screen width
+ * without a second set of mobile numbers.
+ */
+export const restaurantTable = sqliteTable(
+  "restaurant_table",
+  {
+    id: pk(),
+    branchId: integer("branch_id")
+      .notNull()
+      .references(() => branch.id, { onDelete: "cascade" }),
+    /** Unique within a branch, not globally — every outlet has a table 1. */
+    number: integer("number").notNull(),
+    label: text("label"),
+    seats: integer("seats").notNull().default(2),
+    zone: text("zone").notNull().default("Main Floor"),
+    shape: text("shape", {
+      enum: ["round", "square", "rect", "booth", "counter"],
+    })
+      .notNull()
+      .default("square"),
+    /** Percentage coordinates of the shape's centre on the floor plan. */
+    x: real("x").notNull().default(50),
+    y: real("y").notNull().default(50),
+    /** Percentage dimensions of the shape. */
+    w: real("w").notNull().default(10),
+    h: real("h").notNull().default(10),
+    /** Walk-in state, independent of future reservations. */
+    status: text("status", {
+      enum: ["free", "occupied", "reserved", "cleaning"],
+    })
+      .notNull()
+      .default("free"),
+    /** false for service stations and tables kept for walk-ins. */
+    bookable: integer("bookable", { mode: "boolean" }).notNull().default(true),
+    currentOrderId: integer("current_order_id"),
+  },
+  (t) => [
+    uniqueIndex("restaurant_table_branch_number_idx").on(t.branchId, t.number),
+    index("restaurant_table_branch_idx").on(t.branchId),
+  ],
+);
+
+/* -------------------------------------------------------------------------- */
+/*  Reservations                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A table booking. Availability is derived by overlapping [startsAt, endsAt)
+ * against other reservations for the same table, so no slot table is needed
+ * and the seating duration can vary per booking.
+ */
+export const reservation = sqliteTable(
+  "reservation",
+  {
+    id: pk(),
+    /** Human-facing reference, e.g. BC-R-4821. */
+    reference: text("reference").notNull().unique(),
+    branchId: integer("branch_id")
+      .notNull()
+      .references(() => branch.id, { onDelete: "cascade" }),
+    tableId: integer("table_id")
+      .notNull()
+      .references(() => restaurantTable.id, { onDelete: "cascade" }),
+    customerId: integer("customer_id")
+      .notNull()
+      .references(() => customer.id, { onDelete: "cascade" }),
+    /** Snapshotted so a later profile edit doesn't rewrite booking history. */
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone"),
+    partySize: integer("party_size").notNull().default(2),
+    /** Local calendar date, kept separate for cheap per-day queries. */
+    date: text("date").notNull(),
+    startsAt: integer("starts_at", { mode: "timestamp" }).notNull(),
+    endsAt: integer("ends_at", { mode: "timestamp" }).notNull(),
+    durationMinutes: integer("duration_minutes").notNull().default(90),
+    status: text("status", {
+      enum: [
+        "confirmed",
+        "seated",
+        "completed",
+        "cancelled",
+        "no_show",
+      ],
+    })
+      .notNull()
+      .default("confirmed"),
+    occasion: text("occasion", {
+      enum: [
+        "none",
+        "birthday",
+        "anniversary",
+        "business",
+        "date",
+        "celebration",
+      ],
+    })
+      .notNull()
+      .default("none"),
+    notes: text("notes"),
+    /** Set when the party is seated and an order is opened on the table. */
+    orderId: integer("order_id"),
+    cancelledAt: integer("cancelled_at", { mode: "timestamp" }),
+    cancelReason: text("cancel_reason"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("reservation_branch_date_idx").on(t.branchId, t.date),
+    index("reservation_table_idx").on(t.tableId),
+    index("reservation_customer_idx").on(t.customerId),
+  ],
+);
 
 export const staffActivityLog = sqliteTable(
   "staff_activity_log",
@@ -628,14 +886,27 @@ export const settings = sqliteTable("settings", {
   id: integer("id").primaryKey().default(1),
   restaurantName: text("restaurant_name").notNull().default("Bella Cucina"),
   tagline: text("tagline").notNull().default("Modern Italian, made to order"),
-  currency: text("currency").notNull().default("USD"),
-  currencySymbol: text("currency_symbol").notNull().default("$"),
-  serviceChargeRate: real("service_charge_rate").notNull().default(0.05),
-  taxRate: real("tax_rate").notNull().default(0.08),
+  currency: text("currency").notNull().default("MYR"),
+  currencySymbol: text("currency_symbol").notNull().default("RM"),
+  serviceChargeRate: real("service_charge_rate").notNull().default(0.1),
+  /** Malaysian SST on prepared food is 6%. */
+  taxRate: real("tax_rate").notNull().default(0.06),
+  taxLabel: text("tax_label").notNull().default("SST"),
   address: text("address")
     .notNull()
-    .default("118 Vine Street, Riverside District"),
-  phone: text("phone").notNull().default("(555) 018-2245"),
+    .default("Jalan Telawi 3, Bangsar Baru, Kuala Lumpur"),
+  phone: text("phone").notNull().default("+60 3-2201 8845"),
+  /** Reservation policy, shared across branches. */
+  reservationSlotMinutes: integer("reservation_slot_minutes")
+    .notNull()
+    .default(30),
+  reservationDurationMinutes: integer("reservation_duration_minutes")
+    .notNull()
+    .default(90),
+  reservationMaxPartySize: integer("reservation_max_party_size")
+    .notNull()
+    .default(12),
+  reservationLeadDays: integer("reservation_lead_days").notNull().default(60),
   openingHours: text("opening_hours", { mode: "json" })
     .$type<Record<string, { open: string; close: string; closed?: boolean }>>()
     .default({}),
@@ -648,6 +919,14 @@ export const settings = sqliteTable("settings", {
 
 /* -------------------------------------------------------------------------- */
 
+export type Branch = typeof branch.$inferSelect;
+export type BranchMenuItem = typeof branchMenuItem.$inferSelect;
+export type Reservation = typeof reservation.$inferSelect;
+export type ReservationStatus = Reservation["status"];
+export type DeliveryJob = typeof deliveryJob.$inferSelect;
+export type DeliveryStatus = DeliveryJob["status"];
+export type PaymentMethod = Order["paymentMethod"];
+export type TableShape = RestaurantTable["shape"];
 export type User = typeof user.$inferSelect;
 export type Customer = typeof customer.$inferSelect;
 export type Category = typeof category.$inferSelect;

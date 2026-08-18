@@ -24,7 +24,7 @@ export const SEGMENT_LABELS: Record<Segment, string> = {
 export const SEGMENT_DESCRIPTIONS: Record<Segment, string> = {
   new: "Exactly one order placed",
   repeat: "2–5 orders",
-  vip: "Spent over $500 or 10+ orders",
+  vip: "Spent over RM1,500 or 10+ orders",
   at_risk: "Silent for 45–90 days",
   dormant: "Silent for more than 90 days",
 };

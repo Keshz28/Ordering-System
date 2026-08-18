@@ -69,16 +69,16 @@ export const RECIPES: Recipe[] = [
     id: "we_miss_you",
     name: "We miss you",
     rationale:
-      "Win-back for guests who have gone quiet. Escalates from $8 at 45 days to 20% at 75 days. Skips VIPs so you never discount your best customers.",
+      "Win-back for guests who have gone quiet. Escalates from RM25 at 45 days to 20% at 75 days. Skips VIPs so you never discount your best customers.",
     segment: "dormant",
     subject: "It's been a while — here's something on us",
-    body: "The oven has been busy but your table has been empty. Come back this month and take $8 off whatever you fancy.",
+    body: "The oven has been busy but your table has been empty. Come back this month and take RM25 off whatever you fancy.",
     voucher: {
       type: "fixed_off",
       value: 8,
       minSpend: 25,
       expiryDays: 30,
-      title: "$8 off — we miss you",
+      title: "RM25 off — we miss you",
     },
   },
   {
@@ -88,13 +88,13 @@ export const RECIPES: Recipe[] = [
       "Sent seven days before a birthday so there's time to book. The highest-converting automated message most restaurants run.",
     segment: "custom",
     subject: "Happy birthday from all of us",
-    body: "Birthdays deserve a proper table. Here's $10 towards yours — bring whoever you like.",
+    body: "Birthdays deserve a proper table. Here is RM30 towards yours — bring whoever you like.",
     voucher: {
       type: "fixed_off",
       value: 10,
       minSpend: 30,
       expiryDays: 21,
-      title: "$10 birthday reward",
+      title: "RM30 birthday reward",
     },
   },
   {

@@ -188,7 +188,7 @@ export default async function AdminReportsPage() {
               <Th className="text-right">Redemptions</Th>
               <Th className="text-right">Discount given</Th>
               <Th className="text-right">Revenue</Th>
-              <Th className="text-right">Net per $1 discounted</Th>
+              <Th className="text-right">Net per RM1 discounted</Th>
             </tr>
           </Thead>
           <Tbody>

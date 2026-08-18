@@ -203,7 +203,7 @@ export default async function DemoPage() {
             </li>
             <li>2. Open the kitchen view and bump the ticket to Ready.</li>
             <li>
-              3. In Admin → Customers, find your email and issue a personal $5
+              3. In Admin → Customers, find your email and issue a personal RM15
               voucher.
             </li>
             <li>

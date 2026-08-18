@@ -1,5 +1,6 @@
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { PAYMENT_METHOD_LABELS } from "./payments";
 import {
   campaign,
   customer,
@@ -191,16 +192,9 @@ export async function paymentMix() {
     .where(inArray(order.status, REVENUE_STATUSES))
     .groupBy(order.paymentMethod);
 
-  const labels = {
-    card: "Card",
-    apple_pay: "Apple Pay",
-    google_pay: "Google Pay",
-    cash: "Cash",
-    simulated: "Simulated",
-  };
   return rows.map((r) => ({
     key: r.method,
-    name: labels[r.method],
+    name: PAYMENT_METHOD_LABELS[r.method] ?? r.method,
     orders: Number(r.orders),
     revenue: round2(Number(r.revenue)),
   }));

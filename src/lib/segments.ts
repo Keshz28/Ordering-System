@@ -37,7 +37,7 @@ export function segmentFor(stats: Stats): Segment {
     ? Math.floor((Date.now() - stats.lastOrderAt.getTime()) / 86_400_000)
     : Infinity;
 
-  if (stats.totalSpent > 500 || stats.orderCount >= 10) return "vip";
+  if (stats.totalSpent > 1500 || stats.orderCount >= 10) return "vip";
   if (stats.orderCount === 0) return "new";
   if (daysSilent > 90) return "dormant";
   if (daysSilent >= 45) return "at_risk";
