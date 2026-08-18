@@ -4,6 +4,8 @@ import { currentCustomer } from "@/lib/auth";
 import { createOrder } from "@/lib/orders";
 import { quoteOrder, resolveCart, type CartLine } from "@/lib/pricing";
 import { createStripeCheckout, stripeEnabled } from "@/lib/payments";
+import { currentBranch } from "@/lib/branches";
+import { dispatchDelivery } from "@/lib/delivery";
 
 export const runtime = "nodejs";
 
@@ -23,7 +25,21 @@ const bodySchema = z.object({
   tableNumber: z.number().nullable().optional(),
   address: z.string().nullable().optional(),
   pickupSlot: z.string().nullable().optional(),
-  paymentMethod: z.enum(["card", "apple_pay", "google_pay", "cash", "simulated"]),
+  paymentMethod: z.enum([
+    "card",
+    "fpx",
+    "duitnow_qr",
+    "tng",
+    "grabpay",
+    "boost",
+    "shopeepay",
+    "apple_pay",
+    "google_pay",
+    "cash",
+    "simulated",
+  ]),
+  /** The bank or wallet chosen, shown on the receipt. */
+  paymentDetail: z.string().max(60).nullable().optional(),
   guestName: z.string().min(1, "Tell us your name."),
   guestEmail: z.string().email("Enter a valid email address."),
   guestPhone: z.string().nullable().optional(),
@@ -68,7 +84,7 @@ export async function POST(request: Request) {
   if (body.orderType === "delivery" && quote.zone && quote.subtotal < quote.zone.minOrder) {
     return NextResponse.json(
       {
-        error: `${quote.zone.name} has a $${quote.zone.minOrder.toFixed(2)} minimum order.`,
+        error: `${quote.zone.name} has a RM${quote.zone.minOrder.toFixed(2)} minimum order.`,
       },
       { status: 400 },
     );
@@ -78,6 +94,8 @@ export async function POST(request: Request) {
   }
 
   const useStripe = stripeEnabled() && body.paymentMethod === "card";
+  // Which outlet cooks this. Falls back to the first active branch.
+  const branch = await currentBranch();
 
   const created = await createOrder({
     quote,
@@ -92,6 +110,8 @@ export async function POST(request: Request) {
     address: body.address ?? null,
     pickupSlot: body.pickupSlot ?? null,
     paymentMethod: body.paymentMethod,
+    paymentDetail: body.paymentDetail ?? null,
+    branchId: branch?.id ?? null,
     // Cash is settled at the counter; everything else is captured immediately
     // (or by Stripe, once the hosted checkout returns).
     paymentStatus:
@@ -118,6 +138,12 @@ export async function POST(request: Request) {
       });
     }
     // Stripe misconfigured at runtime — fall back rather than dead-end the demo.
+  }
+
+  // Delivery orders book a courier as soon as they're accepted. The provider
+  // is swappable (see src/lib/delivery.ts); the simulator needs no account.
+  if (created.type === "delivery" && created.status !== "new") {
+    await dispatchDelivery(created.id);
   }
 
   return NextResponse.json({

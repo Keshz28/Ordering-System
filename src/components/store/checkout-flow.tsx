@@ -10,7 +10,6 @@ import {
   CreditCard,
   Gift,
   Loader2,
-  Lock,
   ShoppingBag,
   Sparkles,
   Store,
@@ -26,6 +25,10 @@ import { cn, money } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/data";
+import {
+  PaymentPicker,
+  type PayMethod,
+} from "@/components/store/payment-picker";
 
 type QuoteResponse = {
   subtotal: number;
@@ -99,9 +102,10 @@ export function CheckoutFlow({
   const [tipPreset, setTipPreset] = React.useState<number | "custom">(0);
   const [customTip, setCustomTip] = React.useState("");
 
-  const [paymentMethod, setPaymentMethod] = React.useState<
-    "card" | "apple_pay" | "google_pay"
-  >("card");
+  // FPX leads because it carries most Malaysian online payments.
+  const [paymentMethod, setPaymentMethod] =
+    React.useState<PayMethod>("fpx");
+  const [paymentDetail, setPaymentDetail] = React.useState("Maybank2u");
   const [cardNumber, setCardNumber] = React.useState("4242 4242 4242 4242");
 
   const [quote, setQuote] = React.useState<QuoteResponse | null>(null);
@@ -192,6 +196,7 @@ export function CheckoutFlow({
           address: orderType === "delivery" ? address : null,
           pickupSlot: orderType === "takeout" ? pickupSlot : null,
           paymentMethod,
+          paymentDetail,
           guestName: name,
           guestEmail: email,
           guestPhone: phone || null,
@@ -547,64 +552,14 @@ export function CheckoutFlow({
 
         {/* ------------------------------ step 5 ------------------------------ */}
         <Step n={5} title="Payment">
-          <div className="grid gap-2 sm:grid-cols-3">
-            {(
-              [
-                { value: "card", label: "Card" },
-                { value: "apple_pay", label: "Apple Pay" },
-                { value: "google_pay", label: "Google Pay" },
-              ] as const
-            ).map((m) => (
-              <button
-                key={m.value}
-                onClick={() => setPaymentMethod(m.value)}
-                className={cn(
-                  "rounded-xl border px-3.5 py-3 text-sm font-medium transition",
-                  paymentMethod === m.value
-                    ? "border-brand-600 bg-brand-50 text-brand-800 ring-1 ring-brand-600/20"
-                    : "border-cream-400 bg-white text-ink-700 hover:border-cream-500",
-                )}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-
-          {paymentMethod === "card" ? (
-            <div className="mt-4 rounded-2xl border border-cream-400 bg-white p-4">
-              <div className="mb-3 flex items-center gap-2 text-xs text-ink-500">
-                <Lock className="size-3.5" /> Test mode — no real charge is made.
-              </div>
-              <Field label="Card number" htmlFor="card">
-                <Input
-                  id="card"
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value)}
-                  className="font-mono tracking-wider"
-                  inputMode="numeric"
-                />
-              </Field>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <Field label="Expiry">
-                  <Input defaultValue="12/34" className="font-mono" />
-                </Field>
-                <Field label="CVC">
-                  <Input defaultValue="123" className="font-mono" />
-                </Field>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-4 rounded-2xl border border-cream-400 bg-white p-6 text-center">
-              <p className="text-sm font-medium text-ink-900">
-                {paymentMethod === "apple_pay" ? "Apple Pay" : "Google Pay"}{" "}
-                (simulated)
-              </p>
-              <p className="mt-1 text-xs text-ink-500">
-                In production this opens the wallet sheet. Here it settles
-                instantly.
-              </p>
-            </div>
-          )}
+          <PaymentPicker
+            method={paymentMethod}
+            onMethodChange={setPaymentMethod}
+            detail={paymentDetail}
+            onDetailChange={setPaymentDetail}
+            cardNumber={cardNumber}
+            onCardNumberChange={setCardNumber}
+          />
         </Step>
       </div>
 

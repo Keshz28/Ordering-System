@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getOrderWithItems } from "@/lib/orders";
 import { syncStripePayment, stripeEnabled } from "@/lib/payments";
 import { OrderTracker } from "@/components/store/order-tracker";
+import { DeliveryTracker } from "@/components/store/delivery-tracker";
+import { deliveryFor } from "@/lib/delivery";
 
 export const metadata: Metadata = { title: "Your order" };
 export const dynamic = "force-dynamic";
@@ -24,12 +26,16 @@ export default async function OrderPage({
   const order = await getOrderWithItems(orderId);
   if (!order) notFound();
 
+  const delivery =
+    order.type === "delivery" ? await deliveryFor(orderId) : null;
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <OrderTracker
         initialOrder={order}
         justPlaced={Boolean(query.placed || query.paid)}
       />
+      {delivery && <DeliveryTracker job={delivery} />}
     </div>
   );
 }

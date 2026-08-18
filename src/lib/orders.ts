@@ -50,7 +50,11 @@ export type CreateOrderInput = {
   address?: string | null;
   pickupSlot?: string | null;
   paymentMethod: Order["paymentMethod"];
+  /** Bank or wallet chosen, for the receipt line. */
+  paymentDetail?: string | null;
   paymentStatus?: Order["paymentStatus"];
+  /** The outlet fulfilling this order. */
+  branchId?: number | null;
   source?: "storefront" | "pos";
   note?: string | null;
   status?: OrderStatus;
@@ -74,6 +78,7 @@ export async function createOrder(input: CreateOrderInput) {
     .insert(order)
     .values({
       number,
+      branchId: input.branchId ?? null,
       customerId: input.customer?.id ?? null,
       guestName: input.guest.name,
       guestEmail: input.guest.email.toLowerCase().trim(),
@@ -95,6 +100,7 @@ export async function createOrder(input: CreateOrderInput) {
       voucherId: quote.voucher?.id ?? null,
       voucherCode: quote.voucher?.code ?? null,
       paymentMethod: input.paymentMethod,
+      paymentDetail: input.paymentDetail ?? null,
       paymentStatus: input.paymentStatus ?? "pending",
       pointsEarned: quote.pointsEarned,
       placedAt: new Date(),
