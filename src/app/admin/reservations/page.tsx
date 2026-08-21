@@ -9,6 +9,7 @@ import { OCCASION_LABELS, RESERVATION_STATUS_LABELS } from "@/lib/reservations";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ReservationActions } from "@/components/admin/reservation-actions";
+import { NewReservationDialog } from "@/components/admin/new-reservation-dialog";
 import type { ReservationStatus } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -95,6 +96,12 @@ export default async function AdminReservationsPage({
             cover{covers === 1 ? "" : "s"}
           </p>
         </div>
+        <NewReservationDialog
+          branches={scope.branches}
+          defaultBranchId={scope.current?.id ?? scope.branches[0]?.id ?? 0}
+          defaultDate={selectedKey}
+          branchLocked={scope.locked}
+        />
       </header>
 
       {/* Date strip */}

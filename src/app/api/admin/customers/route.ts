@@ -105,3 +105,32 @@ export async function POST(request: Request) {
     customerEmail: target.email,
   });
 }
+
+/**
+ * Guest lookup by email, used when staff take a booking so a regular's name
+ * and number fill themselves in instead of being retyped.
+ *
+ * Returns only what the booking form needs — never the whole CRM record.
+ */
+export async function GET(request: Request) {
+  const staff = await staffGuard("pos");
+  if (!staff) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const email = new URL(request.url).searchParams.get("email")?.trim().toLowerCase();
+  if (!email) {
+    return NextResponse.json({ error: "email is required." }, { status: 400 });
+  }
+
+  const [found] = await db
+    .select({
+      id: customer.id,
+      name: customer.name,
+      phone: customer.phone,
+      segment: customer.segment,
+      orderCount: customer.orderCount,
+    })
+    .from(customer)
+    .where(eq(customer.email, email));
+
+  return NextResponse.json({ customer: found ?? null });
+}

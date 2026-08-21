@@ -252,6 +252,15 @@ export type CreateReservationInput = {
   time: string;
   occasion?: Reservation["occasion"];
   notes?: string | null;
+  /**
+   * Staff taking a walk-in need to seat a party at a slot that has just
+   * started. Guests booking themselves never get this.
+   */
+  allowPast?: boolean;
+  /** Larger parties are arranged by phone, so staff aren't capped online. */
+  allowOversizeParty?: boolean;
+  /** Where the booking came from, for the confirmation wording. */
+  source?: "guest" | "staff";
 };
 
 export async function createReservation(input: CreateReservationInput) {
@@ -262,13 +271,16 @@ export async function createReservation(input: CreateReservationInput) {
     startsAt.getTime() + settings.reservationDurationMinutes * 60_000,
   );
 
-  if (startsAt.getTime() < Date.now()) {
+  if (!input.allowPast && startsAt.getTime() < Date.now()) {
     return { ok: false as const, error: "That time has already passed." };
   }
-  if (input.partySize < 1 || input.partySize > settings.reservationMaxPartySize) {
+  const maxParty = input.allowOversizeParty
+    ? 30
+    : settings.reservationMaxPartySize;
+  if (input.partySize < 1 || input.partySize > maxParty) {
     return {
       ok: false as const,
-      error: `Parties of 1 to ${settings.reservationMaxPartySize} can book online. For anything larger, please call the branch.`,
+      error: `Parties of 1 to ${maxParty} can book here. For anything larger, please call the branch.`,
     };
   }
 
