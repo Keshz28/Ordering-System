@@ -176,9 +176,9 @@ export function PosTerminal({
   }
 
   return (
-    <div className="mx-auto grid max-w-[110rem] gap-4 px-4 py-6 lg:grid-cols-[1fr_24rem]">
+    <div className="mx-auto grid max-w-[110rem] gap-4 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
       {/* ------------------------------ item grid --------------------------- */}
-      <div>
+      <div className="min-w-0">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <h1 className="mr-auto font-display text-2xl">Point of sale</h1>
           <div className="relative">

@@ -54,7 +54,7 @@ export function StaffShell({
   return (
     <div className="flex min-h-dvh flex-col bg-ink-900 text-white">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-ink-900/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-[110rem] items-center gap-3 px-4">
+        <div className="mx-auto flex h-16 max-w-[110rem] items-center gap-2 px-3 sm:gap-3 sm:px-4">
           <Link href="/" className="flex items-center gap-2.5">
             <span className="grid size-9 place-items-center rounded-xl bg-brand-700">
               <ChefHat className="size-5" />
@@ -64,7 +64,7 @@ export function StaffShell({
             </span>
           </Link>
 
-          <nav className="ml-4 flex items-center gap-1">
+          <nav className="ml-1 flex min-w-0 items-center gap-0.5 sm:ml-4 sm:gap-1">
             {visible.map((a) => {
               const active =
                 a.href === "/pos"
@@ -93,7 +93,7 @@ export function StaffShell({
               branches={branches}
               currentSlug={currentBranchSlug}
               locked={branchLocked}
-              className="max-w-[10rem] sm:max-w-none"
+              className="hidden lg:block"
             />
             <Link
               href="/"
@@ -111,6 +111,17 @@ export function StaffShell({
             </div>
             <SignOutButton scope="staff" />
           </div>
+        </div>
+
+        {/* Small screens: the branch belongs on its own line, not squeezed. */}
+        <div className="flex items-center gap-2 border-t border-white/10 px-4 py-2 lg:hidden">
+          <span className="text-xs text-white/40">Viewing</span>
+          <BranchSwitcher
+            branches={branches}
+            currentSlug={currentBranchSlug}
+            locked={branchLocked}
+            className="min-w-0 flex-1"
+          />
         </div>
       </header>
 

@@ -1,41 +1,29 @@
 import type { Metadata } from "next";
-import { eq, inArray } from "drizzle-orm";
-import { db } from "@/db";
-import { order, restaurantTable } from "@/db/schema";
 import { requireStaff } from "@/lib/auth";
 import { staffScope } from "@/lib/branches";
-import { TableFloor } from "@/components/staff/table-floor";
+import { floorStateFor } from "@/lib/reservations";
+import { StaffFloorPlan } from "@/components/staff/staff-floor-plan";
 
-export const metadata: Metadata = { title: "Tables" };
+export const metadata: Metadata = { title: "Floor plan" };
 export const dynamic = "force-dynamic";
 
 export default async function TablesPage() {
   const session = await requireStaff("pos");
   const scope = await staffScope(session);
 
-  const tables = await db
-    .select()
-    .from(restaurantTable)
-    .where(scope.branchId ? eq(restaurantTable.branchId, scope.branchId) : undefined)
-    .orderBy(restaurantTable.number);
-
-  const activeIds = tables
-    .map((t) => t.currentOrderId)
-    .filter((id): id is number => Boolean(id));
-
-  const orders = activeIds.length
-    ? await db.select().from(order).where(inArray(order.id, activeIds))
-    : [];
+  // Owners viewing "all branches" still need one room to look at, so fall back
+  // to the first outlet rather than rendering an incoherent merged plan.
+  const branch = scope.current ?? scope.branches[0] ?? null;
+  const tables = branch ? await floorStateFor(branch.id) : [];
 
   return (
-    <TableFloor
-      tables={tables}
-      orders={orders.map((o) => ({
-        id: o.id,
-        number: o.number,
-        total: o.total,
-        status: o.status,
-      }))}
-    />
+    <div className="p-4 sm:p-6">
+      <StaffFloorPlan
+        branchSlug={branch?.slug ?? ""}
+        branchName={branch?.name ?? "No branch"}
+        floorNote={branch?.floorPlanNote}
+        tables={tables}
+      />
+    </div>
   );
 }

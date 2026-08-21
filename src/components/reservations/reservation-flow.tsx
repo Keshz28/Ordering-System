@@ -214,9 +214,9 @@ export function ReservationFlow({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:items-start">
+    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:items-start">
       {/* ------------------------------ controls ----------------------------- */}
-      <div className="flex flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-5">
         {/* Branch */}
         <section>
           <SectionTitle step={1} icon={MapPin} title="Choose a branch" />
@@ -417,6 +417,7 @@ export function ReservationFlow({
                 selectedId={tableId}
                 onSelect={setTableId}
                 partySize={partySize}
+                branchSlug={branch?.slug ?? ""}
               />
             )}
           </section>
@@ -424,7 +425,7 @@ export function ReservationFlow({
       </div>
 
       {/* ------------------------------ summary ------------------------------ */}
-      <Card className="lg:sticky lg:top-24">
+      <Card className="min-w-0 lg:sticky lg:top-24">
         <div className="border-b border-cream-400 p-5">
           <h2 className="font-display text-lg text-ink-900">Your booking</h2>
           <p className="text-sm text-ink-500">

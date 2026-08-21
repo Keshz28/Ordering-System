@@ -51,7 +51,7 @@ export function StoreHeader({
           <span className="grid size-9 place-items-center rounded-xl bg-brand-700 text-white shadow-sm">
             <ChefHat className="size-5" />
           </span>
-          <span className="font-display text-lg leading-none tracking-tight text-ink-900">
+          <span className="hidden font-display text-lg leading-none tracking-tight text-ink-900 min-[360px]:block">
             Bella Cucina
           </span>
         </Link>
@@ -73,12 +73,12 @@ export function StoreHeader({
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex min-w-0 items-center gap-1.5">
           <BranchPicker
             branches={branches}
             currentSlug={currentBranchSlug}
             openLabel={branchOpenLabel}
-            className="max-w-[8.5rem] sm:max-w-none"
+            className="min-w-0 shrink max-w-[8.5rem] sm:max-w-none"
           />
           <Link
             href="/account/inbox"

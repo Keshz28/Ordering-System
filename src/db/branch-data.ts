@@ -61,24 +61,24 @@ const hours = (weekend = LATE, weekday = NORMAL): OpeningHours => ({
 /* -------------------------------------------------------------------------- */
 
 const bangsarTables: SeedTable[] = [
-  // Chef's counter along the pass
-  { number: 1, label: "C1", seats: 2, zone: "Chef's Counter", shape: "counter", x: 30, y: 10, w: 11, h: 8 },
-  { number: 2, label: "C2", seats: 2, zone: "Chef's Counter", shape: "counter", x: 45, y: 10, w: 11, h: 8 },
-  { number: 3, label: "C3", seats: 2, zone: "Chef's Counter", shape: "counter", x: 60, y: 10, w: 11, h: 8 },
-  // Window row facing Jalan Telawi
-  { number: 4, seats: 2, zone: "Window Row", shape: "round", x: 12, y: 30, w: 12, h: 10 },
-  { number: 5, seats: 2, zone: "Window Row", shape: "round", x: 12, y: 46, w: 12, h: 10 },
-  { number: 6, seats: 2, zone: "Window Row", shape: "round", x: 12, y: 62, w: 12, h: 10 },
-  { number: 7, seats: 2, zone: "Window Row", shape: "round", x: 12, y: 78, w: 12, h: 10 },
-  // Banquette booths along the brick wall
-  { number: 8, seats: 4, zone: "Banquette", shape: "booth", x: 86, y: 30, w: 15, h: 12 },
-  { number: 9, seats: 4, zone: "Banquette", shape: "booth", x: 86, y: 47, w: 15, h: 12 },
-  { number: 10, seats: 4, zone: "Banquette", shape: "booth", x: 86, y: 64, w: 15, h: 12 },
-  { number: 11, seats: 6, zone: "Banquette", shape: "booth", x: 86, y: 82, w: 15, h: 14 },
+  // Stools at the pass, facing the wood-fired oven
+  { number: 1, label: "C1", seats: 2, zone: "Chef's Counter", shape: "counter", x: 32, y: 18, w: 11, h: 8 },
+  { number: 2, label: "C2", seats: 2, zone: "Chef's Counter", shape: "counter", x: 50, y: 18, w: 11, h: 8 },
+  { number: 3, label: "C3", seats: 2, zone: "Chef's Counter", shape: "counter", x: 68, y: 18, w: 11, h: 8 },
+  // Two-tops along the street windows
+  { number: 4, seats: 2, zone: "Window Row", shape: "round", x: 14, y: 34, w: 13, h: 10 },
+  { number: 5, seats: 2, zone: "Window Row", shape: "round", x: 14, y: 48, w: 13, h: 10 },
+  { number: 6, seats: 2, zone: "Window Row", shape: "round", x: 14, y: 62, w: 13, h: 10 },
+  { number: 7, seats: 2, zone: "Window Row", shape: "round", x: 14, y: 76, w: 13, h: 10 },
+  // Banquette down the brick wall
+  { number: 8, seats: 4, zone: "Banquette", shape: "booth", x: 85, y: 36, w: 15, h: 11 },
+  { number: 9, seats: 4, zone: "Banquette", shape: "booth", x: 85, y: 51, w: 15, h: 11 },
+  { number: 10, seats: 4, zone: "Banquette", shape: "booth", x: 85, y: 66, w: 15, h: 11 },
+  { number: 11, seats: 6, zone: "Banquette", shape: "booth", x: 85, y: 82, w: 15, h: 13 },
   // Centre of the room
-  { number: 12, seats: 4, zone: "Main Floor", shape: "square", x: 49, y: 28, w: 14, h: 11 },
-  { number: 13, label: "Communal", seats: 10, zone: "Main Floor", shape: "rect", x: 49, y: 54, w: 32, h: 13 },
-  { number: 14, seats: 4, zone: "Main Floor", shape: "round", x: 49, y: 80, w: 14, h: 12 },
+  { number: 12, seats: 4, zone: "Main Floor", shape: "square", x: 48, y: 32, w: 15, h: 12 },
+  { number: 13, label: "Communal", seats: 10, zone: "Main Floor", shape: "rect", x: 48, y: 53, w: 34, h: 12 },
+  { number: 14, seats: 4, zone: "Main Floor", shape: "round", x: 48, y: 75, w: 15, h: 12 },
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -86,24 +86,24 @@ const bangsarTables: SeedTable[] = [
 /* -------------------------------------------------------------------------- */
 
 const setapakTables: SeedTable[] = [
-  // Two-tops by the entrance
-  { number: 1, seats: 2, zone: "Entrance", shape: "round", x: 12, y: 10, w: 12, h: 10 },
-  { number: 2, seats: 2, zone: "Entrance", shape: "round", x: 88, y: 10, w: 12, h: 10 },
-  // Main hall: big rounds, the family default
-  { number: 3, seats: 6, zone: "Main Hall", shape: "round", x: 25, y: 30, w: 16, h: 14 },
-  { number: 4, seats: 6, zone: "Main Hall", shape: "round", x: 50, y: 30, w: 16, h: 14 },
-  { number: 5, seats: 6, zone: "Main Hall", shape: "round", x: 75, y: 30, w: 16, h: 14 },
-  { number: 6, seats: 6, zone: "Main Hall", shape: "round", x: 25, y: 50, w: 16, h: 14 },
-  { number: 7, seats: 4, zone: "Main Hall", shape: "square", x: 50, y: 50, w: 14, h: 12 },
-  { number: 8, seats: 6, zone: "Main Hall", shape: "round", x: 75, y: 50, w: 16, h: 14 },
-  // Family corner: the big group tables
-  { number: 9, label: "Family A", seats: 8, zone: "Family Corner", shape: "rect", x: 30, y: 71, w: 24, h: 14 },
-  { number: 10, label: "Family B", seats: 8, zone: "Family Corner", shape: "rect", x: 70, y: 71, w: 24, h: 14 },
-  // Garden terrace along the back
-  { number: 11, seats: 4, zone: "Garden Terrace", shape: "square", x: 15, y: 90, w: 13, h: 10 },
-  { number: 12, seats: 4, zone: "Garden Terrace", shape: "square", x: 38, y: 90, w: 13, h: 10 },
-  { number: 13, seats: 4, zone: "Garden Terrace", shape: "square", x: 62, y: 90, w: 13, h: 10 },
-  { number: 14, seats: 4, zone: "Garden Terrace", shape: "square", x: 85, y: 90, w: 13, h: 10 },
+  // Two-tops just inside the door
+  { number: 1, seats: 2, zone: "Entrance", shape: "round", x: 13, y: 26, w: 11, h: 15 },
+  { number: 2, seats: 2, zone: "Entrance", shape: "round", x: 13, y: 52, w: 11, h: 15 },
+  // Six-seat rounds through the middle — the family default
+  { number: 3, seats: 6, zone: "Main Hall", shape: "round", x: 30, y: 28, w: 15, h: 21 },
+  { number: 4, seats: 6, zone: "Main Hall", shape: "round", x: 50, y: 28, w: 15, h: 21 },
+  { number: 5, seats: 6, zone: "Main Hall", shape: "round", x: 70, y: 28, w: 15, h: 21 },
+  { number: 6, seats: 6, zone: "Main Hall", shape: "round", x: 30, y: 54, w: 15, h: 21 },
+  { number: 7, seats: 4, zone: "Main Hall", shape: "square", x: 50, y: 54, w: 13, h: 18 },
+  { number: 8, seats: 6, zone: "Main Hall", shape: "round", x: 70, y: 54, w: 15, h: 21 },
+  // The long family tables
+  { number: 9, label: "Family A", seats: 8, zone: "Family Corner", shape: "rect", x: 90, y: 28, w: 13, h: 26 },
+  { number: 10, label: "Family B", seats: 8, zone: "Family Corner", shape: "rect", x: 90, y: 56, w: 13, h: 26 },
+  // Covered garden terrace across the back
+  { number: 11, seats: 4, zone: "Garden Terrace", shape: "square", x: 20, y: 80, w: 12, h: 16 },
+  { number: 12, seats: 4, zone: "Garden Terrace", shape: "square", x: 40, y: 80, w: 12, h: 16 },
+  { number: 13, seats: 4, zone: "Garden Terrace", shape: "square", x: 60, y: 80, w: 12, h: 16 },
+  { number: 14, seats: 4, zone: "Garden Terrace", shape: "square", x: 80, y: 80, w: 12, h: 16 },
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -111,24 +111,24 @@ const setapakTables: SeedTable[] = [
 /* -------------------------------------------------------------------------- */
 
 const bukitJelutongTables: SeedTable[] = [
-  // Alfresco deck, deliberately scattered rather than gridded
-  { number: 1, seats: 4, zone: "Alfresco Deck", shape: "round", x: 15, y: 20, w: 14, h: 12 },
-  { number: 2, seats: 4, zone: "Alfresco Deck", shape: "round", x: 33, y: 18, w: 14, h: 12 },
-  { number: 3, seats: 2, zone: "Alfresco Deck", shape: "round", x: 14, y: 42, w: 11, h: 9 },
-  { number: 4, seats: 4, zone: "Alfresco Deck", shape: "round", x: 33, y: 43, w: 14, h: 12 },
-  { number: 5, seats: 6, zone: "Alfresco Deck", shape: "round", x: 22, y: 65, w: 17, h: 15 },
-  { number: 6, seats: 2, zone: "Alfresco Deck", shape: "round", x: 12, y: 84, w: 11, h: 9 },
-  { number: 7, seats: 2, zone: "Alfresco Deck", shape: "round", x: 31, y: 86, w: 11, h: 9 },
+  // Deck tables, scattered under the trees rather than gridded
+  { number: 1, seats: 4, zone: "Alfresco Deck", shape: "round", x: 20, y: 20, w: 14, h: 20 },
+  { number: 2, seats: 4, zone: "Alfresco Deck", shape: "round", x: 39, y: 18, w: 14, h: 20 },
+  { number: 3, seats: 2, zone: "Alfresco Deck", shape: "round", x: 18, y: 44, w: 11, h: 15 },
+  { number: 4, seats: 4, zone: "Alfresco Deck", shape: "round", x: 38, y: 44, w: 14, h: 20 },
+  { number: 5, seats: 6, zone: "Alfresco Deck", shape: "round", x: 27, y: 68, w: 16, h: 23 },
+  { number: 6, seats: 2, zone: "Alfresco Deck", shape: "round", x: 18, y: 88, w: 11, h: 15 },
+  { number: 7, seats: 2, zone: "Alfresco Deck", shape: "round", x: 38, y: 88, w: 11, h: 15 },
   // Indoor, air-conditioned
-  { number: 8, seats: 4, zone: "Indoor Dining", shape: "square", x: 62, y: 24, w: 14, h: 12 },
-  { number: 9, seats: 4, zone: "Indoor Dining", shape: "square", x: 82, y: 24, w: 14, h: 12 },
-  { number: 10, seats: 4, zone: "Indoor Dining", shape: "square", x: 62, y: 44, w: 14, h: 12 },
-  { number: 11, seats: 4, zone: "Indoor Dining", shape: "square", x: 82, y: 44, w: 14, h: 12 },
-  // Private nook, curtained off
-  { number: 12, label: "The Nook", seats: 8, zone: "Private Nook", shape: "booth", x: 72, y: 68, w: 26, h: 15 },
-  // The long table under the pergola
-  { number: 13, label: "Pergola", seats: 12, zone: "Alfresco Deck", shape: "rect", x: 66, y: 89, w: 38, h: 11 },
-  { number: 14, seats: 2, zone: "Indoor Dining", shape: "counter", x: 50, y: 8, w: 12, h: 8 },
+  { number: 8, seats: 4, zone: "Indoor Dining", shape: "square", x: 68, y: 32, w: 13, h: 18 },
+  { number: 9, seats: 4, zone: "Indoor Dining", shape: "square", x: 88, y: 32, w: 13, h: 18 },
+  { number: 10, seats: 4, zone: "Indoor Dining", shape: "square", x: 68, y: 54, w: 13, h: 18 },
+  { number: 11, seats: 4, zone: "Indoor Dining", shape: "square", x: 85, y: 54, w: 13, h: 18 },
+  // Curtains off for a private eight
+  { number: 12, label: "The Nook", seats: 8, zone: "Private Nook", shape: "booth", x: 78, y: 15, w: 26, h: 12 },
+  // Under the pergola
+  { number: 13, label: "Pergola", seats: 12, zone: "Alfresco Deck", shape: "rect", x: 72, y: 82, w: 34, h: 12 },
+  { number: 14, seats: 2, zone: "Indoor Dining", shape: "counter", x: 60, y: 70, w: 9, h: 12 },
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -136,24 +136,24 @@ const bukitJelutongTables: SeedTable[] = [
 /* -------------------------------------------------------------------------- */
 
 const putrajayaTables: SeedTable[] = [
-  // Lake-view window, the seats everyone asks for
-  { number: 1, label: "Lake 1", seats: 4, zone: "Lake View", shape: "square", x: 14, y: 12, w: 14, h: 11 },
-  { number: 2, label: "Lake 2", seats: 4, zone: "Lake View", shape: "square", x: 32, y: 11, w: 14, h: 11 },
-  { number: 3, label: "Lake 3", seats: 2, zone: "Lake View", shape: "round", x: 50, y: 10, w: 11, h: 9 },
-  { number: 4, label: "Lake 4", seats: 4, zone: "Lake View", shape: "square", x: 68, y: 11, w: 14, h: 11 },
-  { number: 5, label: "Lake 5", seats: 4, zone: "Lake View", shape: "square", x: 86, y: 12, w: 14, h: 11 },
-  // Boardroom tables for the Presint crowd
-  { number: 6, label: "Boardroom A", seats: 10, zone: "Boardroom", shape: "rect", x: 28, y: 38, w: 34, h: 14 },
-  { number: 7, label: "Boardroom B", seats: 10, zone: "Boardroom", shape: "rect", x: 72, y: 38, w: 34, h: 14 },
+  // The lake-view row everyone asks for
+  { number: 1, label: "Lake 1", seats: 4, zone: "Lake View", shape: "square", x: 14, y: 22, w: 13, h: 19 },
+  { number: 2, label: "Lake 2", seats: 4, zone: "Lake View", shape: "square", x: 32, y: 22, w: 13, h: 19 },
+  { number: 3, label: "Lake 3", seats: 2, zone: "Lake View", shape: "round", x: 50, y: 22, w: 10, h: 15 },
+  { number: 4, label: "Lake 4", seats: 4, zone: "Lake View", shape: "square", x: 68, y: 22, w: 13, h: 19 },
+  { number: 5, label: "Lake 5", seats: 4, zone: "Lake View", shape: "square", x: 86, y: 22, w: 13, h: 19 },
+  // Working lunches
+  { number: 6, label: "Boardroom A", seats: 10, zone: "Boardroom", shape: "rect", x: 29, y: 44, w: 32, h: 13 },
+  { number: 7, label: "Boardroom B", seats: 10, zone: "Boardroom", shape: "rect", x: 72, y: 44, w: 32, h: 13 },
   // Main floor
-  { number: 8, seats: 4, zone: "Main Floor", shape: "square", x: 15, y: 64, w: 14, h: 12 },
-  { number: 9, seats: 4, zone: "Main Floor", shape: "square", x: 35, y: 64, w: 14, h: 12 },
-  { number: 10, seats: 4, zone: "Main Floor", shape: "square", x: 55, y: 64, w: 14, h: 12 },
-  { number: 11, seats: 6, zone: "Main Floor", shape: "round", x: 78, y: 64, w: 16, h: 14 },
+  { number: 8, seats: 4, zone: "Main Floor", shape: "square", x: 16, y: 70, w: 13, h: 19 },
+  { number: 9, seats: 4, zone: "Main Floor", shape: "square", x: 36, y: 70, w: 13, h: 19 },
+  { number: 10, seats: 4, zone: "Main Floor", shape: "square", x: 56, y: 70, w: 13, h: 19 },
+  { number: 11, seats: 6, zone: "Main Floor", shape: "round", x: 78, y: 70, w: 15, h: 22 },
   // Quiet two-tops at the back
-  { number: 12, seats: 2, zone: "Main Floor", shape: "round", x: 25, y: 88, w: 12, h: 10 },
-  { number: 13, seats: 2, zone: "Main Floor", shape: "round", x: 50, y: 88, w: 12, h: 10 },
-  { number: 14, seats: 2, zone: "Main Floor", shape: "round", x: 75, y: 88, w: 12, h: 10 },
+  { number: 12, seats: 2, zone: "Main Floor", shape: "round", x: 26, y: 90, w: 11, h: 15 },
+  { number: 13, seats: 2, zone: "Main Floor", shape: "round", x: 50, y: 90, w: 11, h: 15 },
+  { number: 14, seats: 2, zone: "Main Floor", shape: "round", x: 74, y: 90, w: 11, h: 15 },
 ];
 
 /* -------------------------------------------------------------------------- */

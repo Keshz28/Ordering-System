@@ -82,7 +82,7 @@ export function OrderTracker({
   const eta = order.eta ? new Date(order.eta) : null;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="space-y-5">
         {justPlaced && (
           <div className="flex items-start gap-3 rounded-card border border-emerald-200 bg-emerald-50 p-4">

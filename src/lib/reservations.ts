@@ -419,6 +419,68 @@ export function partitionReservations<
   return { upcoming, past };
 }
 
+/**
+ * Today's room for the staff floor plan: every table with the bookings landing
+ * on it, and a flag for the one the host should see on the table itself.
+ *
+ * Lives here rather than in the page so "what time is it" stays out of render.
+ */
+export async function floorStateFor(branchId: number, now = new Date()) {
+  const key = toDateKey(now);
+
+  const [tables, bookings] = await Promise.all([
+    tablesFor(branchId),
+    db
+      .select()
+      .from(reservation)
+      .where(
+        and(
+          eq(reservation.branchId, branchId),
+          eq(reservation.date, key),
+          inArray(reservation.status, [...LIVE_STATUSES]),
+        ),
+      )
+      .orderBy(reservation.startsAt),
+  ]);
+
+  const stamp = now.getTime();
+  const hhmm = (d: Date) =>
+    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+  return tables.map((table) => {
+    const mine = bookings.filter((b) => b.tableId === table.id);
+    // "Next" is the first booking that hasn't finished yet.
+    const next = mine.find((b) => b.endsAt.getTime() >= stamp);
+
+    /**
+     * The stored status tracks walk-in state only, so a table with a booking
+     * tonight would otherwise sit on the plan reading "Free" — the gap that
+     * made the Reserved counter show zero. A live booking wins over `free`,
+     * but never overrides a table that is actually occupied or being cleaned.
+     */
+    const effectiveStatus =
+      table.status === "free" && next && next.status === "confirmed"
+        ? ("reserved" as const)
+        : next?.status === "seated"
+          ? ("occupied" as const)
+          : table.status;
+
+    return {
+      table,
+      effectiveStatus,
+      bookings: mine.map((b) => ({
+        id: b.id,
+        reference: b.reference,
+        name: b.name,
+        partySize: b.partySize,
+        time: hhmm(b.startsAt),
+        status: b.status,
+        isNext: b.id === next?.id,
+      })),
+    };
+  });
+}
+
 export async function reservationsOnDate(branchId: number, dateKey: string) {
   return db
     .select({ reservation, table: restaurantTable })

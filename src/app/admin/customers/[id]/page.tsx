@@ -199,7 +199,7 @@ export default async function CustomerProfilePage({
         />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-5">
           {/* ------------------------- order history ------------------------- */}
           <section className="rounded-card border border-cream-400 bg-white p-5 shadow-[var(--shadow-card)]">

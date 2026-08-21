@@ -240,7 +240,7 @@ export function CheckoutFlow({
   const freeDeliveryFromTier = quote?.tier?.freeDelivery && orderType === "delivery";
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="space-y-5">
         {/* ------------------------------ step 1 ------------------------------ */}
         <Step n={1} title="How would you like it?">

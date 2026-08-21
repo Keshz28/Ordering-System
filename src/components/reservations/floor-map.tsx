@@ -2,7 +2,9 @@
 
 import * as React from "react";
 import { Check, Users } from "lucide-react";
-import type { RestaurantTable, TableShape } from "@/db/schema";
+import type { RestaurantTable } from "@/db/schema";
+import { FloorCanvas, shapeClass, type PlanTable } from "@/components/floor/floor-canvas";
+import { floorPlanFor } from "@/lib/floor-plans";
 import { cn } from "@/lib/utils";
 
 export type FloorTable = {
@@ -15,114 +17,76 @@ export type FloorTable = {
 };
 
 /**
- * The booking floor plan.
- *
- * Rendered in a square box because table coordinates are percentages of each
- * axis — a square keeps a 12×10 table looking like a table rather than a
- * letterbox, and it scales from a phone to a desktop without a second layout.
- *
- * Tables are real buttons rather than SVG shapes so keyboard focus, screen
- * readers and touch targets all behave without extra work.
+ * The booking floor plan. Draws the same room the staff see, with each table
+ * as a real button so keyboard focus, screen readers and touch targets behave
+ * without extra work.
  */
 export function FloorMap({
   tables,
   selectedId,
   onSelect,
   partySize,
+  branchSlug,
   className,
 }: {
   tables: FloorTable[];
   selectedId: number | null;
   onSelect: (id: number) => void;
   partySize: number;
+  branchSlug: string;
   className?: string;
 }) {
-  const zones = React.useMemo(() => {
-    const set = new Map<string, { x: number; y: number; count: number }>();
-    for (const t of tables) {
-      const z = set.get(t.table.zone) ?? { x: 0, y: 0, count: 0 };
-      z.x += t.table.x;
-      z.y += t.table.y;
-      z.count += 1;
-      set.set(t.table.zone, z);
-    }
-    return [...set.entries()].map(([name, z]) => ({
-      name,
-      x: z.x / z.count,
-      y: z.y / z.count,
-    }));
-  }, [tables]);
+  const plan = floorPlanFor(branchSlug);
+  const byId = React.useMemo(
+    () => new Map(tables.map((t) => [t.table.id, t])),
+    [tables],
+  );
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-      <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-cream-400 bg-[linear-gradient(180deg,#fdfbf7,#f8f0e4)] shadow-inner">
-        {/* Faint zone names sit behind the tables for orientation. */}
-        {zones.map((z) => (
-          <span
-            key={z.name}
-            aria-hidden
-            className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-[8px] font-semibold tracking-[0.18em] whitespace-nowrap text-ink-500/25 uppercase sm:text-[10px]"
-            style={{ left: `${z.x}%`, top: `${Math.max(3, z.y - 13)}%` }}
-          >
-            {z.name}
-          </span>
-        ))}
-
-        {tables.map(({ table, available, reason }) => {
-          const selected = selectedId === table.id;
-          const disabled = !available;
+      <FloorCanvas
+        plan={plan}
+        tables={tables.map((t) => t.table as PlanTable)}
+        renderTable={(t) => {
+          const entry = byId.get(t.id);
+          if (!entry) return null;
+          const { available, reason } = entry;
+          const selected = selectedId === t.id;
           return (
             <button
-              key={table.id}
               type="button"
-              disabled={disabled}
-              onClick={() => onSelect(table.id)}
+              disabled={!available}
+              onClick={() => onSelect(t.id)}
               aria-pressed={selected}
-              aria-label={`Table ${table.number}${table.label ? ` (${table.label})` : ""}, seats ${table.seats}, ${labelFor(reason)}`}
-              title={`${table.label ?? `Table ${table.number}`} · seats ${table.seats} · ${labelFor(reason)}`}
+              aria-label={`Table ${t.number}${t.label ? ` (${t.label})` : ""}, seats ${t.seats}, ${labelFor(reason)}`}
+              title={`${t.label ?? `Table ${t.number}`} · seats ${t.seats} · ${labelFor(reason)}`}
               className={cn(
-                "absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center border-2 transition-all",
-                shapeClass(table.shape),
+                "flex size-full flex-col items-center justify-center border-2 transition-all",
+                shapeClass(t.shape),
                 selected
-                  ? "z-20 scale-[1.08] border-brand-800 bg-brand-700 text-white shadow-lg"
+                  ? "z-20 scale-[1.06] border-brand-800 bg-brand-700 text-white shadow-lg"
                   : reason === "available"
                     ? "z-10 border-brand-300 bg-white text-ink-900 hover:border-brand-600 hover:bg-brand-50 hover:shadow-md"
                     : reason === "oversized"
                       ? "z-10 border-cream-500 bg-white/70 text-ink-500 hover:border-brand-400 hover:text-ink-900"
                       : "cursor-not-allowed border-cream-400 bg-cream-300/70 text-ink-500/45",
               )}
-              /**
-               * Percentages size the table to the room, but on a phone the map
-               * is ~343px wide and the smallest tables would land at 38×27px —
-               * too small to tap confidently. The floors keep their proportions
-               * on larger screens and stop shrinking past a usable target.
-               * Growth is symmetric because the shape is centred on its point.
-               */
-              style={{
-                left: `${table.x}%`,
-                top: `${table.y}%`,
-                width: `${table.w}%`,
-                height: `${table.h}%`,
-                minWidth: "2.75rem",
-                minHeight: "2.25rem",
-              }}
             >
               {selected ? (
-                <Check className="size-3 sm:size-4" strokeWidth={3} />
+                <Check className="size-3.5 sm:size-4" strokeWidth={3} />
               ) : (
                 <span className="text-[9px] leading-none font-bold sm:text-xs">
-                  {table.label ?? table.number}
+                  {t.label ?? t.number}
                 </span>
               )}
               <span className="mt-0.5 hidden items-center gap-0.5 text-[8px] leading-none opacity-70 sm:flex">
                 <Users className="size-2.5" />
-                {table.seats}
+                {t.seats}
               </span>
             </button>
           );
-        })}
-      </div>
-
+        }}
+      />
       <Legend partySize={partySize} />
     </div>
   );
@@ -149,21 +113,6 @@ function Legend({ partySize }: { partySize: number }) {
       </span>
     </div>
   );
-}
-
-function shapeClass(shape: TableShape) {
-  switch (shape) {
-    case "round":
-      return "rounded-full";
-    case "booth":
-      return "rounded-2xl rounded-l-sm";
-    case "rect":
-      return "rounded-xl";
-    case "counter":
-      return "rounded-md";
-    default:
-      return "rounded-lg";
-  }
 }
 
 function labelFor(reason: FloorTable["reason"]) {

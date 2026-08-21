@@ -222,7 +222,7 @@ export default async function StorefrontPage() {
 
       {/* ------------------------------ loyalty ----------------------------- */}
       <section className="mx-auto max-w-6xl px-4 pb-12">
-        <div className="grid gap-4 rounded-3xl border border-cream-400 bg-white p-6 sm:p-8 lg:grid-cols-[1.2fr_1fr]">
+        <div className="grid gap-4 rounded-3xl border border-cream-400 bg-white p-6 sm:p-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <div>
             <Badge variant="gold">Bella Rewards</Badge>
             <h2 className="mt-3 font-display text-2xl text-ink-900">
