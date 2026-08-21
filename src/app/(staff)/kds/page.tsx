@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { order, orderItem, type OrderStatus } from "@/db/schema";
 import { requireStaff } from "@/lib/auth";
+import { staffScope } from "@/lib/branches";
 import { KdsBoard } from "@/components/staff/kds-board";
 
 export const metadata: Metadata = { title: "Kitchen display" };
@@ -18,11 +19,17 @@ const LIVE: OrderStatus[] = [
 
 export default async function KdsPage() {
   const session = await requireStaff("kds");
+  const scope = await staffScope(session);
 
   const orders = await db
     .select()
     .from(order)
-    .where(inArray(order.status, LIVE))
+    .where(
+      and(
+        inArray(order.status, LIVE),
+        scope.branchId ? eq(order.branchId, scope.branchId) : undefined,
+      ),
+    )
     .orderBy(order.placedAt);
 
   const items = orders.length

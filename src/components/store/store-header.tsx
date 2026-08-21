@@ -12,6 +12,8 @@ import {
   User,
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { BranchPicker } from "@/components/store/branch-picker";
+import type { Branch } from "@/db/schema";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CartSheet } from "./cart-sheet";
@@ -27,9 +29,15 @@ const links = [
 export function StoreHeader({
   customerName,
   unreadCount,
+  branches,
+  currentBranchSlug,
+  branchOpenLabel,
 }: {
   customerName: string | null;
   unreadCount: number;
+  branches: Branch[];
+  currentBranchSlug: string | null;
+  branchOpenLabel?: string;
 }) {
   const { count, ready } = useCart();
   const pathname = usePathname();
@@ -66,6 +74,12 @@ export function StoreHeader({
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5">
+          <BranchPicker
+            branches={branches}
+            currentSlug={currentBranchSlug}
+            openLabel={branchOpenLabel}
+            className="max-w-[8.5rem] sm:max-w-none"
+          />
           <Link
             href="/account/inbox"
             className="relative hidden size-10 place-items-center rounded-full text-ink-700 transition hover:bg-cream-200 sm:grid"

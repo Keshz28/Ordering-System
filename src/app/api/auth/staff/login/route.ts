@@ -53,6 +53,7 @@ export async function POST(request: Request) {
     name: account.name,
     email: account.email,
     role: account.role,
+    branchId: account.branchId ?? null,
   });
 
   await logActivity("Signed in", `${account.role} · ${account.email}`, {

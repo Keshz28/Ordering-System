@@ -21,6 +21,8 @@ export type StaffSession = {
   name: string;
   email: string;
   role: "owner" | "manager" | "cashier" | "kitchen";
+  /** null = group-wide access (owners and area managers). */
+  branchId: number | null;
 };
 
 export type CustomerSession = {

@@ -6,13 +6,16 @@ import { currentCustomer } from "@/lib/auth";
 import { getSettings } from "@/lib/pricing";
 import { CartProvider } from "@/lib/cart";
 import { StoreHeader } from "@/components/store/store-header";
+import { currentBranch, listBranches, openStatusLabel } from "@/lib/branches";
 
 export default async function StoreLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [customer, settings] = await Promise.all([
+  const [branches, activeBranch, customer, settings] = await Promise.all([
+    listBranches(),
+    currentBranch(),
     currentCustomer(),
     getSettings(),
   ]);
@@ -37,6 +40,11 @@ export default async function StoreLayout({
         <StoreHeader
           customerName={customer?.name ?? null}
           unreadCount={unread}
+          branches={branches}
+          currentBranchSlug={activeBranch?.slug ?? null}
+          branchOpenLabel={
+            activeBranch ? openStatusLabel(activeBranch).label : undefined
+          }
         />
         <main className="flex-1">{children}</main>
 

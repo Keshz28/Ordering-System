@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { customer, order, orderItem, type OrderStatus } from "@/db/schema";
 import { logActivity, staffGuard } from "@/lib/auth";
+import { staffScope } from "@/lib/branches";
 import { createOrder } from "@/lib/orders";
 import { quoteOrder, resolveCart, type CartLine } from "@/lib/pricing";
 
@@ -20,18 +21,27 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const scope = url.searchParams.get("scope") ?? "live";
 
+  // Floor staff only ever see their own outlet's tickets.
+  const { branchId } = await staffScope(staff);
+  const branchFilter = branchId ? eq(order.branchId, branchId) : undefined;
+
   const rows =
     scope === "today"
       ? await db
           .select()
           .from(order)
-          .where(gte(order.placedAt, new Date(new Date().setHours(0, 0, 0, 0))))
+          .where(
+            and(
+              gte(order.placedAt, new Date(new Date().setHours(0, 0, 0, 0))),
+              branchFilter,
+            ),
+          )
           .orderBy(desc(order.placedAt))
           .limit(80)
       : await db
           .select()
           .from(order)
-          .where(inArray(order.status, LIVE))
+          .where(and(inArray(order.status, LIVE), branchFilter))
           .orderBy(order.placedAt);
 
   const items = rows.length

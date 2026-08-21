@@ -57,6 +57,60 @@ export async function setBranchCookie(slug: string) {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Staff scoping                                                             */
+/* -------------------------------------------------------------------------- */
+
+const STAFF_BRANCH_COOKIE = "bc_staff_branch";
+
+export type StaffScope = {
+  /** null means every branch — only owners and managers can reach this. */
+  branchId: number | null;
+  /** true when the account is tied to one outlet and cannot switch. */
+  locked: boolean;
+  branches: Branch[];
+  current: Branch | null;
+};
+
+/**
+ * Which outlet a staff member is looking at.
+ *
+ * Floor staff are pinned to their own branch — a Setapak cashier must never
+ * see Bangsar's tickets, and that is enforced here rather than in the UI.
+ * Owners and managers carry no branch and may switch, with "all branches" as
+ * the default so the group view is what they land on.
+ */
+export async function staffScope(session: {
+  branchId?: number | null;
+  role: string;
+}): Promise<StaffScope> {
+  const branches = await listBranches();
+
+  if (session.branchId) {
+    const own = branches.find((b) => b.id === session.branchId) ?? null;
+    return { branchId: session.branchId, locked: true, branches, current: own };
+  }
+
+  const store = await cookies();
+  const chosen = store.get(STAFF_BRANCH_COOKIE)?.value;
+  if (chosen && chosen !== "all") {
+    const found = branches.find((b) => b.slug === chosen);
+    if (found) {
+      return { branchId: found.id, locked: false, branches, current: found };
+    }
+  }
+  return { branchId: null, locked: false, branches, current: null };
+}
+
+export async function setStaffBranchCookie(slugOrAll: string) {
+  const store = await cookies();
+  store.set(STAFF_BRANCH_COOKIE, slugOrAll, {
+    path: "/",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Opening hours                                                             */
 /* -------------------------------------------------------------------------- */
 

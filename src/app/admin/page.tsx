@@ -37,11 +37,17 @@ import {
   NewVsReturning,
   RevenueTrend,
 } from "@/components/admin/charts";
+import { requireStaff } from "@/lib/auth";
+import { staffScope } from "@/lib/branches";
 
 export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
+  // Every figure below is scoped to the outlet chosen in the branch switcher.
+  const session = await requireStaff("admin");
+  const { branchId } = await staffScope(session);
+
   const [
     kpis,
     trend,
@@ -57,17 +63,17 @@ export default async function AdminDashboardPage() {
     campaigns,
     lowStock,
   ] = await Promise.all([
-    getKpis(),
-    revenueByDay(30),
-    salesByHour(),
-    ordersByType(),
-    paymentMix(),
-    topItems(10),
-    topItemsByRevenue(10),
-    promotionPerformance(),
-    newVsReturning(30),
+    getKpis(branchId),
+    revenueByDay(30, branchId),
+    salesByHour(branchId),
+    ordersByType(branchId),
+    paymentMix(branchId),
+    topItems(10, branchId),
+    topItemsByRevenue(10, branchId),
+    promotionPerformance(branchId),
+    newVsReturning(30, branchId),
     segmentBreakdown(),
-    monthlyLtv(),
+    monthlyLtv(branchId),
     campaignPerformance(),
     lowStockItems(),
   ]);

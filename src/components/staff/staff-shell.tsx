@@ -12,6 +12,8 @@ import {
   Store,
 } from "lucide-react";
 import type { Role } from "@/lib/auth";
+import { BranchSwitcher } from "@/components/staff/branch-switcher";
+import type { Branch } from "@/db/schema";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { SignOutButton } from "@/components/store/sign-out-button";
@@ -34,10 +36,16 @@ const ROLE_TONE: Record<Role, string> = {
 export function StaffShell({
   session,
   access,
+  branches,
+  currentBranchSlug,
+  branchLocked,
   children,
 }: {
   session: { name: string; role: Role };
   access: string[];
+  branches: Branch[];
+  currentBranchSlug: string | null;
+  branchLocked: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -80,14 +88,20 @@ export function StaffShell({
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <BranchSwitcher
+              branches={branches}
+              currentSlug={currentBranchSlug}
+              locked={branchLocked}
+              className="max-w-[10rem] sm:max-w-none"
+            />
             <Link
               href="/"
-              className="hidden items-center gap-1.5 text-xs text-white/50 transition hover:text-white md:flex"
+              className="hidden items-center gap-1.5 text-xs text-white/50 transition hover:text-white lg:flex"
             >
               <Store className="size-3.5" /> Storefront
             </Link>
-            <div className="text-right">
+            <div className="hidden text-right sm:block">
               <p className="text-sm leading-tight font-medium">{session.name}</p>
               <Badge
                 className={cn("border-transparent", ROLE_TONE[session.role])}

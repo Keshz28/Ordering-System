@@ -1,19 +1,22 @@
 import type { Metadata } from "next";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { order, restaurantTable } from "@/db/schema";
 import { requireStaff } from "@/lib/auth";
+import { staffScope } from "@/lib/branches";
 import { TableFloor } from "@/components/staff/table-floor";
 
 export const metadata: Metadata = { title: "Tables" };
 export const dynamic = "force-dynamic";
 
 export default async function TablesPage() {
-  await requireStaff("pos");
+  const session = await requireStaff("pos");
+  const scope = await staffScope(session);
 
   const tables = await db
     .select()
     .from(restaurantTable)
+    .where(scope.branchId ? eq(restaurantTable.branchId, scope.branchId) : undefined)
     .orderBy(restaurantTable.number);
 
   const activeIds = tables

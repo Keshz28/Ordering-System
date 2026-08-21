@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { desc, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { Download, Receipt } from "lucide-react";
 import { db } from "@/db";
 import { order, orderItem } from "@/db/schema";
 import { requireStaff } from "@/lib/auth";
+import { staffScope } from "@/lib/branches";
 import { STATUS_LABELS } from "@/lib/orders";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payments";
 import { formatDateTime, money } from "@/lib/utils";
@@ -31,11 +32,13 @@ export default async function AdminOrdersPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   const session = await requireStaff("admin");
+  const scope = await staffScope(session);
   const { status } = await searchParams;
 
   const rows = await db
     .select()
     .from(order)
+    .where(scope.branchId ? eq(order.branchId, scope.branchId) : undefined)
     .orderBy(desc(order.placedAt))
     .limit(120);
 

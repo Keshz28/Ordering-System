@@ -421,7 +421,7 @@ export function CheckoutFlow({
                 id="phone"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="(555) 000-0000"
+                placeholder="+60 12-345 6789"
                 autoComplete="tel"
               />
             </Field>

@@ -30,6 +30,14 @@ function startOfDay(d = new Date()) {
   return copy;
 }
 
+/**
+ * Restricts an order query to one outlet. Returns undefined for the group
+ * view, which Drizzle's and() drops, so the same query serves both.
+ */
+function atBranch(branchId?: number | null) {
+  return branchId ? eq(order.branchId, branchId) : undefined;
+}
+
 function daysAgo(n: number) {
   return new Date(Date.now() - n * 86_400_000);
 }
@@ -38,7 +46,7 @@ function daysAgo(n: number) {
 /*  KPI cards                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export async function getKpis() {
+export async function getKpis(branchId?: number | null) {
   const today = startOfDay();
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
@@ -49,7 +57,11 @@ export async function getKpis() {
     })
     .from(order)
     .where(
-      and(gte(order.placedAt, today), inArray(order.status, REVENUE_STATUSES)),
+      and(
+        gte(order.placedAt, today),
+        inArray(order.status, REVENUE_STATUSES),
+        atBranch(branchId),
+      ),
     );
 
   const [allTimeRow] = await db
@@ -58,12 +70,12 @@ export async function getKpis() {
       orders: sql<number>`count(*)`,
     })
     .from(order)
-    .where(inArray(order.status, REVENUE_STATUSES));
+    .where(and(inArray(order.status, REVENUE_STATUSES), atBranch(branchId)));
 
   const [pendingRow] = await db
     .select({ n: sql<number>`count(*)` })
     .from(order)
-    .where(inArray(order.status, KITCHEN_STATUSES));
+    .where(and(inArray(order.status, KITCHEN_STATUSES), atBranch(branchId)));
 
   const [newCustomerRow] = await db
     .select({ n: sql<number>`count(*)` })
@@ -80,6 +92,7 @@ export async function getKpis() {
       and(
         gte(order.placedAt, daysAgo(30)),
         inArray(order.status, REVENUE_STATUSES),
+        atBranch(branchId),
       ),
     );
 
@@ -104,7 +117,7 @@ export async function getKpis() {
 /*  Charts                                                                    */
 /* -------------------------------------------------------------------------- */
 
-export async function revenueByDay(days = 30) {
+export async function revenueByDay(days = 30, branchId?: number | null) {
   const rows = await db
     .select({
       day: sql<string>`date(${order.placedAt}, 'unixepoch', 'localtime')`,
@@ -116,6 +129,7 @@ export async function revenueByDay(days = 30) {
       and(
         gte(order.placedAt, daysAgo(days)),
         inArray(order.status, REVENUE_STATUSES),
+        atBranch(branchId),
       ),
     )
     .groupBy(sql`1`)
@@ -140,7 +154,7 @@ export async function revenueByDay(days = 30) {
   return out;
 }
 
-export async function salesByHour() {
+export async function salesByHour(branchId?: number | null) {
   const rows = await db
     .select({
       hour: sql<string>`strftime('%H', ${order.placedAt}, 'unixepoch', 'localtime')`,
@@ -148,7 +162,7 @@ export async function salesByHour() {
       orders: sql<number>`count(*)`,
     })
     .from(order)
-    .where(inArray(order.status, REVENUE_STATUSES))
+    .where(and(inArray(order.status, REVENUE_STATUSES), atBranch(branchId)))
     .groupBy(sql`1`)
     .orderBy(sql`1`);
 
@@ -161,7 +175,7 @@ export async function salesByHour() {
   })).filter((r) => r.hour >= 10 && r.hour <= 23);
 }
 
-export async function ordersByType() {
+export async function ordersByType(branchId?: number | null) {
   const rows = await db
     .select({
       type: order.type,
@@ -169,7 +183,7 @@ export async function ordersByType() {
       revenue: sql<number>`sum(${order.total})`,
     })
     .from(order)
-    .where(inArray(order.status, REVENUE_STATUSES))
+    .where(and(inArray(order.status, REVENUE_STATUSES), atBranch(branchId)))
     .groupBy(order.type);
 
   const labels = { dine_in: "Dine-in", takeout: "Takeaway", delivery: "Delivery" };
@@ -181,7 +195,7 @@ export async function ordersByType() {
   }));
 }
 
-export async function paymentMix() {
+export async function paymentMix(branchId?: number | null) {
   const rows = await db
     .select({
       method: order.paymentMethod,
@@ -189,7 +203,7 @@ export async function paymentMix() {
       revenue: sql<number>`sum(${order.total})`,
     })
     .from(order)
-    .where(inArray(order.status, REVENUE_STATUSES))
+    .where(and(inArray(order.status, REVENUE_STATUSES), atBranch(branchId)))
     .groupBy(order.paymentMethod);
 
   return rows.map((r) => ({
@@ -200,7 +214,7 @@ export async function paymentMix() {
   }));
 }
 
-export async function topItems(limit = 10) {
+export async function topItems(limit = 10, branchId?: number | null) {
   const rows = await db
     .select({
       menuItemId: orderItem.menuItemId,
@@ -210,7 +224,7 @@ export async function topItems(limit = 10) {
     })
     .from(orderItem)
     .innerJoin(order, eq(orderItem.orderId, order.id))
-    .where(inArray(order.status, REVENUE_STATUSES))
+    .where(and(inArray(order.status, REVENUE_STATUSES), atBranch(branchId)))
     .groupBy(orderItem.name)
     .orderBy(desc(sql`sum(${orderItem.quantity})`))
     .limit(limit);
@@ -222,7 +236,7 @@ export async function topItems(limit = 10) {
   }));
 }
 
-export async function topItemsByRevenue(limit = 10) {
+export async function topItemsByRevenue(limit = 10, branchId?: number | null) {
   const rows = await db
     .select({
       name: orderItem.name,
@@ -231,7 +245,7 @@ export async function topItemsByRevenue(limit = 10) {
     })
     .from(orderItem)
     .innerJoin(order, eq(orderItem.orderId, order.id))
-    .where(inArray(order.status, REVENUE_STATUSES))
+    .where(and(inArray(order.status, REVENUE_STATUSES), atBranch(branchId)))
     .groupBy(orderItem.name)
     .orderBy(desc(sql`sum(${orderItem.lineTotal})`))
     .limit(limit);
@@ -244,7 +258,7 @@ export async function topItemsByRevenue(limit = 10) {
 }
 
 /** Promotion ROI: discount given away vs revenue on the orders that used it. */
-export async function promotionPerformance() {
+export async function promotionPerformance(branchId?: number | null) {
   const rows = await db
     .select({
       voucherId: voucherRedemption.voucherId,
@@ -256,6 +270,10 @@ export async function promotionPerformance() {
     })
     .from(voucherRedemption)
     .innerJoin(voucher, eq(voucherRedemption.voucherId, voucher.id))
+    // Joined so promotion ROI can be scoped to one outlet like every other
+    // figure on the dashboard; redemptions carry the order they were used on.
+    .innerJoin(order, eq(voucherRedemption.orderId, order.id))
+    .where(and(inArray(order.status, REVENUE_STATUSES), atBranch(branchId)))
     .groupBy(voucherRedemption.voucherId)
     .orderBy(desc(sql`count(*)`));
 
@@ -274,7 +292,7 @@ export async function promotionPerformance() {
   });
 }
 
-export async function newVsReturning(days = 30) {
+export async function newVsReturning(days = 30, branchId?: number | null) {
   const rows = await db
     .select({
       day: sql<string>`date(${order.placedAt}, 'unixepoch', 'localtime')`,
@@ -286,6 +304,7 @@ export async function newVsReturning(days = 30) {
       and(
         gte(order.placedAt, daysAgo(days)),
         inArray(order.status, REVENUE_STATUSES),
+        atBranch(branchId),
       ),
     )
     .orderBy(order.placedAt);
@@ -333,7 +352,7 @@ export async function segmentBreakdown() {
 }
 
 /** Average lifetime value by cohort month — the "is this business growing" chart. */
-export async function monthlyLtv() {
+export async function monthlyLtv(branchId?: number | null) {
   const rows = await db
     .select({
       month: sql<string>`strftime('%Y-%m', ${order.placedAt}, 'unixepoch', 'localtime')`,
@@ -341,7 +360,7 @@ export async function monthlyLtv() {
       customers: sql<number>`count(distinct ${order.customerId})`,
     })
     .from(order)
-    .where(inArray(order.status, REVENUE_STATUSES))
+    .where(and(inArray(order.status, REVENUE_STATUSES), atBranch(branchId)))
     .groupBy(sql`1`)
     .orderBy(sql`1`);
 

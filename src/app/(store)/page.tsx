@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { desc, eq, gte } from "drizzle-orm";
 import {
+  MapPin,
   ArrowRight,
   Bike,
   Clock,
@@ -12,6 +13,7 @@ import {
 import { db } from "@/db";
 import { promotion, review } from "@/db/schema";
 import { getMenu } from "@/lib/menu";
+import { listBranches } from "@/lib/branches";
 import { getSettings } from "@/lib/pricing";
 import { currentCustomer } from "@/lib/auth";
 import { money } from "@/lib/utils";
@@ -20,7 +22,9 @@ import { Button } from "@/components/ui/button";
 import { SafeImage } from "@/components/safe-image";
 
 export default async function StorefrontPage() {
-  const [categories, settings, promos, reviews, customer] = await Promise.all([
+  const [branches, categories, settings, promos, reviews, customer] =
+    await Promise.all([
+    listBranches(),
     getMenu(),
     getSettings(),
     db
@@ -77,9 +81,14 @@ export default async function StorefrontPage() {
               </Button>
             </div>
 
-            <dl className="mt-9 grid max-w-md grid-cols-3 gap-4">
+            <dl className="mt-9 grid max-w-md grid-cols-2 gap-4 sm:grid-cols-4">
               {[
-                { icon: UtensilsCrossed, label: "Dine-in", value: "14 tables" },
+                {
+                  icon: MapPin,
+                  label: "Branches",
+                  value: `${branches.length} outlets`,
+                },
+                { icon: UtensilsCrossed, label: "Dine-in", value: "Book ahead" },
                 { icon: Store, label: "Takeaway", value: "15 min" },
                 { icon: Bike, label: "Delivery", value: "3 zones" },
               ].map((s) => (

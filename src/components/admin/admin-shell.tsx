@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  CalendarCheck,
   ChefHat,
   ClipboardList,
   Gauge,
@@ -22,6 +23,8 @@ import {
   X,
 } from "lucide-react";
 import type { Role } from "@/lib/auth";
+import { BranchSwitcher } from "@/components/staff/branch-switcher";
+import type { Branch } from "@/db/schema";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { SignOutButton } from "@/components/store/sign-out-button";
@@ -35,6 +38,7 @@ const NAV: {
     items: [
       { href: "/admin", label: "Dashboard", icon: Gauge },
       { href: "/admin/orders", label: "Orders", icon: ClipboardList },
+      { href: "/admin/reservations", label: "Reservations", icon: CalendarCheck },
       { href: "/admin/reports", label: "Reports", icon: BarChart3 },
     ],
   },
@@ -82,9 +86,15 @@ const NAV: {
 
 export function AdminShell({
   session,
+  branches,
+  currentBranchSlug,
+  branchLocked,
   children,
 }: {
   session: { name: string; role: Role };
+  branches: Branch[];
+  currentBranchSlug: string | null;
+  branchLocked: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -200,7 +210,28 @@ export function AdminShell({
             <MenuIcon className="size-5" />
           </button>
           <span className="font-display text-lg text-ink-900">Back office</span>
+          <BranchSwitcher
+            branches={branches}
+            currentSlug={currentBranchSlug}
+            locked={branchLocked}
+            className="ml-auto max-w-[10rem]"
+          />
         </header>
+
+        {/* Desktop branch bar — which outlet the figures below describe. */}
+        <div className="hidden h-14 items-center gap-3 border-b border-cream-400 bg-cream-100/90 px-6 backdrop-blur lg:sticky lg:top-0 lg:z-30 lg:flex">
+          <span className="text-sm text-ink-500">Viewing</span>
+          <BranchSwitcher
+            branches={branches}
+            currentSlug={currentBranchSlug}
+            locked={branchLocked}
+          />
+          {!currentBranchSlug && !branchLocked && (
+            <span className="text-xs text-ink-500">
+              Group-wide totals across all {branches.length} outlets
+            </span>
+          )}
+        </div>
 
         <main className="flex-1 p-4 sm:p-6">{children}</main>
       </div>
